@@ -1,0 +1,37 @@
+//This method is called when the form loads
+function Form_InitDone(eventObject)
+{
+    setMissingTranslations();
+    //Form the Manage EBS Engineers parameters and pass to frame to open the People Picker.
+    var reqXML=xmlPeoplePicker.XMLDocument.documentElement.cloneNode(true);
+    var data =new Object();
+    data.first_listbox_caption = "All Ashghal Users";
+    data.second_listbox_caption = "EBS Engineers";
+    data.groupbox_caption_ar = "<span>تحديت مهندس EBS</span>";
+    data.first_listbox_caption_ar = "قائمة جميع مستخدمين أشغال";
+    data.second_listbox_caption_ar = "قائمة مهندسين EBS";
+    data.groupbox_caption= "<span>EBS</span> <span> E</span>ngineers <span>U</span>pdated";
+    data.textvalue_caption = "<h3 xmlns=\"\" class=\"screentitle\"><span xmlns=\"\">M</span>anage <span xmlns=\"\"> EBS</span><span xmlns=\"\"> E</span>ngineers</h3>";
+    data.textvalue_caption_ar = "إدارة مهندسين EBS";
+    data.group_name = "I-M2-EBSEngineer";
+    data.function_area = 30;
+    data.service_error = 131;
+    data.service_auth_error = 130;
+    data.notifi_min_chars = 365;
+    data.data_unavailable = 366;
+    data.succ_msg = 129;
+    data.action_search = 18;
+    data.action_assign = 31;
+    data.mail_id = 33;
+    data.from = "Common";
+    application.select(reqXML,data); 
+}
+//Method to set the missing arabic translations
+function setMissingTranslations()
+{
+    if(getParameterByName('language') == 'ar-QA')
+    {
+        $("#xbody_group").css("padding-left", "inherit").css("padding-right", "65px");
+        $(".maingrp").css("left", "0");
+    }
+}
