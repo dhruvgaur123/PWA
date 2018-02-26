@@ -1,0 +1,360 @@
+/* This Script is written by Yuvraj
+   It is for listing all the Agencies.
+*/
+var userid = "";
+
+//This method is called when the form loads
+function Form_InitDone(eventObject) {
+    inp_agncNmAr.hide();
+    setMissingTranslations();
+    //Form level message
+    cordys.setNodeText(GetMsgsByFunctionAreaModel.getMethodRequest(), ".//*[local-name()='FunAreaID']", 12);
+    GetMsgsByFunctionAreaModel.reset();
+
+    //Form level security and actions
+    var aob = [];
+    aob.push({
+        control: navInsert1,
+        value: '15'
+    });
+    aob.push({
+        control: navEdit1,
+        value: '16'
+    });
+    aob.push({
+        control: navDelete1,
+        value: '17'
+    });
+    aob.push({
+        control: navDelete1,
+        value: '18'
+    });
+    aob.push({
+        control: nav_Excel1,
+        value: '20'
+    });
+    var res = isAuthorized(GetAuthorizationInfoModel, GetMsgsByFunctionAreaModel, 12, 60, 59, aob);
+    if (res == "") {
+        grp_agnc.hide();
+        grp_agncTbl.hide();
+        text1.hide();
+        return;
+    }
+    //Form level action End
+    navEdit1.disable();
+    navDelete1.disable();
+    table_agnc.hideColumn(1);
+    table_agnc.hideColumn(11);
+    table_agnc.hideColumn(12);
+}
+
+//This method is called when the search button is clicked
+function btn_search_Click(eventObject) {
+    GetAgencyDetailsOnSearchModel.reset();
+    if (cordys.selectXMLNodes(GetAgencyDetailsOnSearchModel.getData(), ".//*[local-name()='tuple']").length == 0) {
+        showMessage(GetMsgsByFunctionAreaModel, 1, 56, "", "");
+        return false;
+    }
+	else {
+		showMessage(GetMsgsByFunctionAreaModel, 1, 57, "", "");
+        return false;
+	}
+}
+
+//This method is called when new record is to be inserted
+function navInsert1_Click(eventObject) {
+    if (getParameterByName('language') == 'ar-QA'){
+    cordys.setNodeText(CreateAgency.XMLDocument.documentElement,".//*[local-name()='caption']","إنشاء وكالة");
+    cordys.setNodeText(CreateAgency.XMLDocument.documentElement,".//*[local-name()='description']","إنشاء وكالة");
+    }
+    application.showDialog(CreateAgency.XMLDocument.documentElement, 0, null, callBackHandler);
+}
+
+//This method is called when a record is called for editing
+function navEdit1_Click(eventObject) {
+    var data = new Object();
+    var ind = table_agnc.getCheckedRows()[0].index;
+    data.Id = out_agncId[ind].getValue();
+    data.editflg = 1;
+    if (getParameterByName('language') == 'ar-QA'){
+    cordys.setNodeText(EditAgency.XMLDocument.documentElement,".//*[local-name()='caption']","تحديث الوكالة");
+    cordys.setNodeText(EditAgency.XMLDocument.documentElement,".//*[local-name()='description']","تحديث الوكالة");
+    }
+    var crtreq = EditAgency.XMLDocument.documentElement;
+    application.showDialog(crtreq, data, null, callBackHandler);
+}
+
+//This method is called when record is selected for deletion
+function navDelete1_Click(eventObject) {
+    var indx = table_agnc.getCheckedRows()[0].index;
+    var Id = out_agncId[indx].getValue();
+    var req = IsAgencyUseModel.getMethodRequest();
+    cordys.setNodeText(req, ".//*[local-name()='AgencyID']", Id);
+    IsAgencyUseModel.setMethodRequest(req);
+    IsAgencyUseModel.reset();
+    var count = cordys.getNodeText(IsAgencyUseModel.getData(), ".//tns:agcCount");
+    if (count == 1) {
+        showMessage(GetMsgsByFunctionAreaModel, 3, 279, "", "");
+        return;
+    } else {
+        var req = GetAgencyObjectModel.getMethodRequest();
+        cordys.setNodeText(req, ".//*[local-name()='AgcyID']", Id);
+        GetAgencyObjectModel.setMethodRequest(req);
+        GetAgencyObjectModel.reset();
+        var agCod = cordys.getNodeText(GetAgencyObjectModel.getData(), ".//*[local-name()='AgcyCdSys']");
+        var agTyp = cordys.getNodeText(GetAgencyObjectModel.getData(), ".//*[local-name()='AgcyTypID']");
+        var agencyName = cordys.getNodeText(GetAgencyObjectModel.getData(), ".//*[local-name()='AgcyEnNm']");
+        var delreq = cordys.cloneXMLDocument(DeleteAgency.XMLDocument);
+        for (var i = 0; i < table_agnc.getCheckedRows().length; i++) {
+            var deltuple = cordys.cloneXMLDocument(DeleteAgencyTuple.XMLDocument);
+            cordys.setNodeText(deltuple, ".//*[local-name()='tuple']/*[local-name()='old']/*[local-name()='CFM_Agcy']/*[local-name()='AgcyID']", out_agncId[table_agnc.getCheckedRows()[i].index].getValue());
+            cordys.appendXMLNode(cordys.selectXMLNode(deltuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(delreq, ".//*[local-name()='UpdateCFM_Agcy']"));
+        }
+        DeleteModel.clear();
+        DeleteModel.setMethodRequest(delreq);
+        DeleteModel.reset();
+        //Delete groups from OTDS when the Agency is deleted.
+        var reqAgcyDel = UpdateAgencyDetailsModel.getMethodRequest();
+        var agcygroup = "";
+        var agcygrp = "";
+        if (agTyp == "1") {
+            agcygroup = "X-M2-" + agCod;
+            agcygrp = "X-M2-";
+        }
+        if (agTyp == "2") {
+            agcygroup = "I-M2-" + agCod;
+            agcygrp = "I-M2-";
+        }
+        
+            var req = GetOTDSGroupUsersModel.getMethodRequest();
+            cordys.setNodeText(req, ".//*[local-name()='groupId']", agcygroup + "-AgencyManager");
+            GetOTDSGroupUsersModel.setMethodRequest(req);
+            GetOTDSGroupUsersModel.reset();
+            var agcyHeadEmail = cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']")
+            var agcyHeadName = cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='displayName']")[1], ".//*[local-name()='values']")
+
+            
+        
+        var createAgcyTuple = cordys.cloneXMLDocument(AgcyDelete.XMLDocument);
+        cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", agcygroup + "-AgencyEngineer");
+        cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='parentGroupId']", agcygrp + "AgencyEngineer");
+        cordys.appendXMLNode(cordys.selectXMLNode(createAgcyTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqAgcyDel, ".//*[local-name()='agencyTuples']"));
+
+        var createAgcyTuple = cordys.cloneXMLDocument(AgcyDelete.XMLDocument);
+        cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", agcygroup + "-AgencyManager");
+        cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='parentGroupId']", agcygrp + "AgencyManager");
+        cordys.appendXMLNode(cordys.selectXMLNode(createAgcyTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqAgcyDel, ".//*[local-name()='agencyTuples']"));
+
+        var createAgcyTuple = cordys.cloneXMLDocument(AgcyDelete.XMLDocument);
+        cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", agcygroup + "-AgencyExecutive");
+        cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='parentGroupId']", agcygrp + "AgencyExecutive");
+        cordys.appendXMLNode(cordys.selectXMLNode(createAgcyTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqAgcyDel, ".//*[local-name()='agencyTuples']"));
+
+        var createAgcyTuple = cordys.cloneXMLDocument(AgcyDelete.XMLDocument);
+        cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", agcygroup + "-AgencyActingManager");
+        cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='parentGroupId']", agcygrp + "AgencyActingManager");
+        cordys.appendXMLNode(cordys.selectXMLNode(createAgcyTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqAgcyDel, ".//*[local-name()='agencyTuples']"));
+
+        cordys.setNodeText(reqAgcyDel, ".//*[local-name()='operation']", "delete");
+        UpdateAgencyDetailsModel.setMethodRequest(reqAgcyDel);
+        UpdateAgencyDetailsModel.reset();
+        var crtsucmsg = cordys.getNodeText(UpdateAgencyDetailsModel.getData(), ".//tns:result");
+        if (crtsucmsg != "SUCCESS") {
+            showMessage(GetMsgsByFunctionAreaModel, 3, 60, "", "");
+            return;
+        }
+
+    }
+        
+	var req = CFM_EmailMsgTmplModel.getMethodRequest();
+        cordys.setNodeText(req, ".//*[local-name()='EmailMsgTmplID']", 34);
+            CFM_EmailMsgTmplModel.setMethodRequest(req);
+            CFM_EmailMsgTmplModel.reset();
+
+            //For English Language
+            var mailSub = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjEn");
+            var mailBody = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyEn");
+
+            var mailBodyParams = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyParams");
+            var mailBodyParamsArray = new Array();
+            mailBodyParamsArray = mailBodyParams.split("|");
+            mailBodyParamsArray[0] = agencyName;
+
+            for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                mailBody = mailBody.replace("{" + i + "}", mailBodyParamsArray[i]);
+            }
+            //For Arabic Language
+            var mailSubAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjAr");
+            var mailBodyAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyAr");
+            if (mailSubAr !== undefined && mailSubAr != "") {
+                for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                    mailBodyAr = mailBodyAr.replace("{" + i + "}", mailBodyParamsArray[i]);
+                }
+            }
+            if (getParameterByName('language') == 'ar-QA') {
+                var req = SendMailNotificationsModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupIDs']", "");
+                cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                cordys.setNodeText(req, ".//*[local-name()='mailIDs']", agcyHeadEmail);
+                cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSubAr);
+                cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBodyAr);
+                SendMailNotificationsModel.setMethodRequest(req);
+                //SendMailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = SendMailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+            } else {
+                var req = SendMailNotificationsModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupIDs']", "");
+                cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                cordys.setNodeText(req, ".//*[local-name()='mailIDs']", agcyHeadEmail);
+                cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSub);
+                cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBody);
+                SendMailNotificationsModel.setMethodRequest(req);
+                //SendMailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = SendMailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+            }
+	            if (SendMailNotificationsModel.soapFaultOccurred){
+				showMessage(GetMsgsByFunctionAreaModel, 3, 60, "", "");
+				return;
+			}
+    if (DeleteModel.soapFaultOccurred) {
+        showMessage(GetMsgsByFunctionAreaModel, 3, 60, "", "");
+    } else {
+        showMessage(GetMsgsByFunctionAreaModel, 1, 53, "", "");
+    }
+	
+    GetAgencyDetailsOnSearchModel.reset();
+    navEdit1.disable();
+    navDelete1.disable();
+}
+
+//This method is called whenever a table row is checked
+function table_agnc_OnRowChecked(eventObject) {
+    if (table_agnc.getCheckedRows().length == 1) {
+        navEdit1.enable();
+        navDelete1.enable();
+    } else if (table_agnc.getCheckedRows().length > 1) {
+        navEdit1.disable();
+        navDelete1.disable();
+    } else {
+        navEdit1.disable();
+        navDelete1.disable();
+    }
+}
+
+//This method gets called after closing of childform
+function callBackHandler(dialogReturnValue) {
+    table_agnc.refresh();
+   // GetAgencyDetailsOnSearchModel.reset();
+    btn_clear_Click();
+    navEdit1.disable();
+    navDelete1.disable();
+    if (dialogReturnValue.msg == "") {
+        return false;
+    } else {
+        if (dialogReturnValue.msg == "54") {
+            showMessage(GetMsgsByFunctionAreaModel, 1, 54, "", "10");
+        }
+        if (dialogReturnValue.msg == "52") {
+            showMessage(GetMsgsByFunctionAreaModel, 1, 52, "", "10");
+        }
+
+    }
+    navDelete1.disable();
+    navEdit1.disable();
+    cordys.setNodeText(GetMsgsByFunctionAreaModel.getMethodRequest(), ".//*[local-name()='FunAreaID']", 12);
+    GetMsgsByFunctionAreaModel.reset();
+}
+
+//This method gets called when excel file download is requested
+function nav_Excel1_Click(eventObject) {
+    var exd = new ExcelDownload();
+    exd.serviceModel = DownloadExcelModel;
+    exd.serviceName = "GetAgencyDetailsOnSearch";
+    exd.serviceNamespace = "http://ashghal.gov.qa/wsapps/configurationservices";
+
+    exd.addServiceParameter("Status", rad_agncstat.getValue());
+    exd.addServiceParameter("AgcyName", inp_agncNm.getValue());
+    exd.addServiceParameter("AgcyCode", inp_agncCd.getValue());
+    exd.addServiceParameter("AgcyAra", inp_agncNmAr.getValue());
+    exd.addServiceParameter("ConcDept", inp_cndDpt.getValue());
+    exd.addServiceParameter("Email", inp_emlDom.getValue());
+
+    if (getParameterByName('language') == 'ar-QA') {
+    exd.addExcelColumn("اسم الوكالة", "AgcyEnNm", "string");
+    exd.addExcelColumn("اسم الوكالة (عربي)", "AgcyArNm", "string");
+    exd.addExcelColumn("رمز الوكالة", "AgcyCd", "string");
+    exd.addExcelColumn("العنوان البريدي", "MailingAddr", "string");
+    exd.addExcelColumn("رقم الاتصال", "CtcNum", "string");
+    exd.addExcelColumn("الفاكس", "FaxNum", "string");
+    exd.addExcelColumn("البريد الإلكتروني", "EmailDom", "string");
+    exd.addExcelColumn("الحد الأقصى للمستخدمين", "MaxUsrs", "string");
+    exd.addExcelColumn("الاسم المختصر للوكالة", "AgcyShortNmEn", "string");
+    exd.addExcelColumn("وكالة مختصرة باللغة العربية", "AgcyShortNmAr", "string");
+    exd.addExcelColumn("كونك ديبت", "ConcDept", "string");
+    }
+    else{
+    exd.addExcelColumn("Agency Name", "AgcyEnNm", "string");
+    exd.addExcelColumn("Agency Arabic Name", "AgcyArNm", "string");
+    exd.addExcelColumn("Agency Code", "AgcyCd", "string");
+    exd.addExcelColumn("Mailing Address", "MailingAddr", "string");
+    exd.addExcelColumn("Contact Number", "CtcNum", "string");
+    exd.addExcelColumn("Fax", "FaxNum", "string");
+    exd.addExcelColumn("Email ", "EmailDom", "string");
+    exd.addExcelColumn("Maximum Users", "MaxUsrs", "string");
+    exd.addExcelColumn("Agency Short Name", "AgcyShortNmEn", "string");
+    exd.addExcelColumn("Agency Short Arabic Name", "AgcyShortNmAr", "string");
+    exd.addExcelColumn("Conc Dept", "ConcDept", "string");
+    }
+    exd.excelFileName = "Agency List";
+    exd.generateExcel();
+}
+
+//This method is used for fetching details of user from OTDS
+function GetOTDSUserProfileModel_OnRequest(eventObject) {
+    cordys.setNodeText(eventObject.request, ".//*[local-name()='userId']", userid);
+}
+
+//This method is called for setting missing arabic translation
+function setMissingTranslations() {
+    if (getParameterByName('language') == 'ar-QA') {
+        $("#xbody_group").css("padding-left", "inherit").css("padding-right", "65px");
+        text1.setValue("تعيين إداري اشغال");
+         $(".groupcontent .v_label").css("text-align", "right");
+         $(".h_choicebox label").css("text-align", "right");
+    }
+}
+
+//This method is called before binding data to this field
+function actdis_BeforeBind(eventObject) {
+    var isactve = cordys.getNodeText(eventObject.srcElement.businessObject, ".//*[local-name()='StatID']");
+    if (isactve != undefined && isactve == "1")
+        out_isAct[table_agnc.getIndex()].setValue("Yes");
+    if (isactve != undefined && isactve == "2")
+        out_isAct[table_agnc.getIndex()].setValue("No");
+}
+
+//This method clears all the input data from search area
+function btn_clear_Click(eventObject) {
+    inp_agncNm.setValue("");
+    inp_agncNmAr.setValue("");
+    inp_agncCd.setValue("");
+    inp_cndDpt.setValue("");
+    inp_emlDom.setValue("");
+    rad_agncstat.setValue("");
+    GetAgencyDetailsOnSearchModel.clear();
+    GetAgencyDetailsOnSearchModel.reset();
+}
+
+//This method fetches the agency details as per the search criteria
+function GetAgencyDetailsOnSearchModel_OnRequest(eventObject) {
+    cordys.setNodeText(eventObject.request, ".//*[local-name()='AgcyName']", inp_agncNm.getValue());
+    cordys.setNodeText(eventObject.request, ".//*[local-name()='AgcyAra']", inp_agncNmAr.getValue());
+    cordys.setNodeText(eventObject.request, ".//*[local-name()='AgcyCode']", inp_agncCd.getValue());
+    cordys.setNodeText(eventObject.request, ".//*[local-name()='ConcDept']", inp_cndDpt.getValue());
+    cordys.setNodeText(eventObject.request, ".//*[local-name()='Email']", inp_emlDom.getValue());
+    cordys.setNodeText(eventObject.request, ".//*[local-name()='Status']", rad_agncstat.getValue());
+}
