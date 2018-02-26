@@ -1,0 +1,1342 @@
+/**
+ * For Creating and Editing Departments.
+ * @author Dhruv Gaur
+ */
+var editflag = 0;
+var usrdn_dh = "";
+var usrdn_bc = "";
+var usrdn_pc = "";
+var usrdn_obc = "";
+var usrdn_de = "";
+var usrnm_dh = "";
+var usrnm_bc = "";
+var usrnm_pc = "";
+var usrnm_obc = "";
+var usrnm_de = "";
+var oldusrdn_dh = "";
+var oldusrdn_bc = "";
+var oldusrdn_pc = "";
+var oldusrdn_obc = "";
+var oldusrdn_de = "";
+var usrsel_dh = "";
+var usrsel_bc = "";
+var usrsel_pc = "";
+var usrsel_obc = "";
+var usrsel_de = "";
+var usersel = "";
+var userdn = "";
+var userid = "";
+var deptcode = "";
+var groupid = "";
+var usrval_dh = "";
+var usrval_bc = "";
+var usrval_obc = "";
+var usrval_pc = "";
+var usrval_de = "";
+var userval = "";
+var operation = "";
+var affairopt = {
+    value: "",
+    description: "---Select Affair---"
+};
+var araffairopt = {
+    value: "",
+    description: "---حدد أفير---"
+};
+//var deptHeadOpt = {value:"",description:"---Select Department Head---"};
+var msg = "";
+var userflag = "";
+var olddata, oldfulldata, oldestmphdept, oldfullestmphdept;
+
+//Form Initialization
+function Form_InitDone(eventObject) {
+
+// for bus data island
+//text3.hide();
+
+     var mq = window.matchMedia("(min-width: 767px)");
+if (mq.matches) {
+    //window width is at least 550px
+   //alert("syed");
+            
+
+} else {
+    // window width is less than 767px
+  alert("syed2");
+            document.getElementById("selBdgtCd").src = "qa/gov/ashghal/caprmsglobal/img/add-down.png";
+            document.getElementById("selAllBdgtCd").src = "qa/gov/ashghal/caprmsglobal/img/add-all-down.png";
+            document.getElementById("unselBdgtCd").src = "qa/gov/ashghal/caprmsglobal/img/remove-down.png";
+            document.getElementById("unselAllBdgtCd").src = "qa/gov/ashghal/caprmsglobal/img/remove-all-down.png";
+            
+            document.getElementById("selEstPh").src = "qa/gov/ashghal/caprmsglobal/img/add-down.png";
+            document.getElementById("selAllEstPh").src = "qa/gov/ashghal/caprmsglobal/img/add-all-down.png";
+            document.getElementById("unselEstPh").src = "qa/gov/ashghal/caprmsglobal/img/remove-down.png";
+            document.getElementById("unselAllEstPh").src = "qa/gov/ashghal/caprmsglobal/img/remove-all-down.png";
+}
+
+
+    setMissingTranslations();
+    //for disabling project co-ordinators
+    document.getElementById('out_pc').setAttribute('disabled',"true");
+    document.getElementById('out_otrBdgtC').setAttribute('disabled',"true");
+    document.getElementById('out_deptExc').setAttribute('disabled',"true");
+    cordys.setNodeText(GetMsgsByFunctionAreaModel.getMethodRequest(), ".//*[local-name()='FunAreaID']", 1);
+    GetMsgsByFunctionAreaModel.reset();
+    //Form level security and actions
+    var aob = [];
+    aob.push({
+        control: btn_save,
+        value: '19'
+    });
+    var res = isAuthorized(GetAuthorizationInfoModel, GetMsgsByFunctionAreaModel, 1, 226, 30, aob);
+    if (res == "") {
+        group1.hide();
+        grp_department.hide();
+        text1.hide();
+        text2.hide();
+        return;
+    }
+
+
+    setConfigs();
+    out_id.hide();
+
+    if (application.event.data) {
+        var dataa = application.event.data;
+        srcApp = application.event.srcApplication;
+        editflag = dataa.editflg;
+    }
+    //Condition for Editing Department.
+    if (editflag == 1) {
+        out_id.setValue(dataa.Id);
+        var req = CFM_DeptModel.getMethodRequest();
+        cordys.setNodeText(req, ".//*[local-name()='DeptID']", out_id.getValue());
+        CFM_DeptModel.setMethodRequest(req);
+        CFM_DeptModel.reset();
+        deptcode = cordys.getNodeText(CFM_DeptModel.getData(), ".//tns:DeptCd");
+
+        //For Fetching Department Head Details from OTDS. 
+        var req = GetOTDSGroupUsersModel.getMethodRequest();
+        cordys.setNodeText(req, ".//*[local-name()='groupId']", ("I-M2-" + deptcode + "-DepartmentHead"));
+        GetOTDSGroupUsersModel.setMethodRequest(req);
+        GetOTDSGroupUsersModel.reset();
+        usrnm_dh = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:name");
+        oldusrdn_dh = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:location");
+        out_deptHead.setValue(usrnm_dh);
+        usrsel_dh = usrnm_dh + " - " + (cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']"));
+        usrdn_dh = oldusrdn_dh;
+        usrval_dh = usrnm_dh;
+
+        //For Fetching Department Budget Coordinator Details from OTDS.
+        var req = GetOTDSGroupUsersModel.getMethodRequest();
+        cordys.setNodeText(req, ".//*[local-name()='groupId']", ("I-M2-" + deptcode + "-DepartmentBudgetCoordinator"));
+        GetOTDSGroupUsersModel.setMethodRequest(req);
+        GetOTDSGroupUsersModel.reset();
+        usrnm_bc = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:name");
+        oldusrdn_bc = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:location");
+        out_bdgtC.setValue(usrnm_bc);
+        usrsel_bc = usrnm_bc + " - " + (cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']"));
+        usrdn_bc = oldusrdn_bc;
+        usrval_bc = usrnm_bc;
+
+        //For Fetching Department Project Coordinator Details from OTDS.
+        var req = GetOTDSGroupUsersModel.getMethodRequest();
+        cordys.setNodeText(req, ".//*[local-name()='groupId']", ("I-M2-" + deptcode + "-DepartmentProjectCoordinator"));
+        GetOTDSGroupUsersModel.setMethodRequest(req);
+        GetOTDSGroupUsersModel.reset();
+        var nodes = cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='values'][.//*[local-name()='values']/*[local-name()='name']='cn']");
+        oldusrdn_pc = "";
+        var i = 0;
+        for (i = 0; i < nodes.length; i++) {
+            oldusrdn_pc = oldusrdn_pc + cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='location']")[i], ".") + ";";
+
+            usrsel_pc += (oldusrdn_pc.split(";")[i].split(",")[0].split("=")[1]) + " - " + (cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='values']/*[local-name()='values'][.//*[local-name()='name']='mail']")[i], ".//*[local-name()='values']")) + "\n";;
+            usrdn_pc += oldusrdn_pc.split(";")[i] + "\n";
+            usrval_pc += (oldusrdn_pc.split(";")[i].split(",")[0].split("=")[1]) + "\n";
+        }
+        usrsel_pc = usrsel_pc.slice(0, -1);
+        usrdn_pc = usrdn_pc.slice(0, -1);
+        usrval_pc = usrval_pc.slice(0, -1);
+        setProjectCoordinators();
+
+
+
+        //For Fetching Department Acting Budget Coordinator Details from OTDS.
+        var req = GetOTDSGroupUsersModel.getMethodRequest();
+        cordys.setNodeText(req, ".//*[local-name()='groupId']", ("I-M2-" + deptcode + "-OtherBudgetCoordinator"));
+        GetOTDSGroupUsersModel.setMethodRequest(req);
+        GetOTDSGroupUsersModel.reset();
+        var nodes = cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='values'][.//*[local-name()='values']/*[local-name()='name']='cn']");
+        oldusrdn_obc = "";
+        var i = 0;
+        for (i = 0; i < nodes.length; i++) {
+            oldusrdn_obc = oldusrdn_obc + cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='location']")[i], ".") + ";";
+
+            usrsel_obc += (oldusrdn_obc.split(";")[i].split(",")[0].split("=")[1]) + " - " + (cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='values']/*[local-name()='values'][.//*[local-name()='name']='mail']")[i], ".//*[local-name()='values']")) + "\n";;
+            usrdn_obc += oldusrdn_obc.split(";")[i] + "\n";
+            usrval_obc += (oldusrdn_obc.split(";")[i].split(",")[0].split("=")[1]) + "\n";
+        }
+        usrsel_obc = usrsel_obc.slice(0, -1);
+        usrdn_obc = usrdn_obc.slice(0, -1);
+        usrval_obc = usrval_obc.slice(0, -1);
+        setDeptOtherCoordinators();
+
+
+        //For Fetching Department Executive Details from OTDS.
+        var req = GetOTDSGroupUsersModel.getMethodRequest();
+        cordys.setNodeText(req, ".//*[local-name()='groupId']", ("I-M2-" + deptcode + "-DepartmentExecutive"));
+        GetOTDSGroupUsersModel.setMethodRequest(req);
+        GetOTDSGroupUsersModel.reset();
+        var nodes = cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='values'][.//*[local-name()='values']/*[local-name()='name']='cn']");
+        oldusrdn_de = "";
+        var i = 0;
+        for (i = 0; i < nodes.length; i++) {
+            oldusrdn_de = oldusrdn_de + cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='location']")[i], ".") + ";";
+
+            usrsel_de += (oldusrdn_de.split(";")[i].split(",")[0].split("=")[1]) + " - " + (cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='values']/*[local-name()='values'][.//*[local-name()='name']='mail']")[i], ".//*[local-name()='values']")) + "\n";;
+            usrdn_de += oldusrdn_de.split(";")[i] + "\n";
+            usrval_de += (oldusrdn_de.split(";")[i].split(",")[0].split("=")[1]) + "\n";
+        }
+        usrsel_de = usrsel_de.slice(0, -1);
+        usrdn_de = usrdn_de.slice(0, -1);
+        usrval_de = usrval_de.slice(0, -1);
+        setDeptExecutive();
+
+        cordys.setNodeText(GetBudgetCodeByDepartmentIDModel.getMethodRequest(), ".//*[local-name()='DepartmentID']", dataa.Id);
+        GetBudgetCodeByDepartmentIDModel.reset();
+        olddata = cordys.selectXMLNodes(GetBudgetCodeByDepartmentIDModel.getData(), ".//*[local-name()='tuple']");
+        cordys.setNodeText(CFM_DeptBudgCdModel.getMethodRequest(), ".//*[local-name()='DeptID']", dataa.Id);
+        CFM_DeptBudgCdModel.reset();
+        oldfulldata = cordys.selectXMLNodes(CFM_DeptBudgCdModel.getData(), ".//*[local-name()='tuple']");
+
+        cordys.setNodeText(GetEstimationPhaseByDepartmentIDModel.getMethodRequest(), ".//*[local-name()='DepartmentID']", dataa.Id);
+        GetEstimationPhaseByDepartmentIDModel.reset();
+        oldestmphdept = cordys.selectXMLNodes(GetEstimationPhaseByDepartmentIDModel.getData(), ".//*[local-name()='tuple']");
+        cordys.setNodeText(CFM_EstmPhDeptModel.getMethodRequest(), ".//*[local-name()='DeptID']", dataa.Id);
+        CFM_EstmPhDeptModel.reset();
+        oldfullestmphdept = cordys.selectXMLNodes(CFM_EstmPhDeptModel.getData(), ".//*[local-name()='tuple']");
+    }
+    //Condition for Creating Department.
+    else {
+        grp_department.create();
+    }
+}
+
+//Method to save data,if it is edit then we are edit the details in DB and if it is new data it is saved into DB. For OTDS services,BPM is getting triggered by sending the input for OTDS users in the form of XML.
+function btn_save_Click(eventObject) {
+    if (sel_affairs.getValue() == "") {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 25, "", "");
+        return;
+    }
+    if (inp_deptNm.getValue().trim() == "") {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 26, "", "");
+        return;
+    }
+    if (out_deptHead.getValue() == "") {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 27, "", "");
+        return;
+    }
+    if (out_bdgtC.getValue() == "") {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 28, "", "");
+        return;
+    }
+    if (out_pc.getValue() == "") {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 29, "", "");
+        return;
+    }
+    //Validations for the Fields present in the screen.
+    var DPName = inp_deptNm.getValue();
+    DPName  = DPName.trim();
+    if (!(/^[0-9a-zA-Z ]+$/.test(DPName))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 299, "", "");
+        inp_deptNm.setFocus();
+        return;
+    }
+    if (!(/^[0-9a-zA-Z ]{0,255}$/.test(DPName))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 288, "", "");
+        inp_deptNm.setFocus();
+        return;
+    }
+    if (inp_ctcNo.getValue() != "") {
+        var ContactNo = inp_ctcNo.getValue();
+        if (!(/^\d+$/.test(ContactNo))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 301, "", "");
+            inp_ctcNo.setFocus();
+            return;
+        }
+        if (!(/^\d{8}$/.test(ContactNo))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 328, "", "");
+            inp_ctcNo.setFocus();
+            return;
+        }
+    }
+    if (inp_fax.getValue() != "") {
+        var fax = inp_fax.getValue();
+        if (!(/^\d+$/.test(fax))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 329, "", "");
+            inp_fax.setFocus();
+            return;
+        }
+        if (!(/^\d{8}$/.test(fax))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 330, "", "");
+            inp_fax.setFocus();
+            return;
+        }
+    }
+
+    if (inp_resEscAdMob.getValue() != "") {
+        var MultiNo = new Array();
+        MultiNo = inp_resEscAdMob.getValue().split(",");
+        for (var i = 0; i < MultiNo.length; i++) {
+            if (!(/^\d{8}$/.test(MultiNo[i]))) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 293, "", "");
+                inp_resEscAdMob.setFocus();
+                return;
+            }
+        }
+    }
+
+
+    if (inp_resEscAdEm.getValue() != "") {
+        var MultiEmail = new Array();
+        MultiEmail = inp_resEscAdEm.getValue().split(",");
+        for (var i = 0; i < MultiEmail.length; i++) {
+            if (!(/^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/.test(MultiEmail[i]))) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 292, "", "");
+                inp_resEscAdEm.setFocus();
+                return;
+            }
+        }
+    }
+
+
+    if (inp_comEscAdMob.getValue() != "") {
+        var MultiNo = new Array();
+        MultiNo = inp_comEscAdMob.getValue().split(",");
+        for (var i = 0; i < MultiNo.length; i++) {
+            if (!(/^\d{8}$/.test(MultiNo[i]))) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 331, "", "");
+                inp_comEscAdMob.setFocus();
+                return;
+            }
+        }
+    }
+
+
+    if (inp_comEscAddEm.getValue() != "") {
+        var MultiEmail = new Array();
+        MultiEmail = inp_comEscAddEm.getValue().split(",");
+        for (var i = 0; i < MultiEmail.length; i++) {
+            if (!(/^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/.test(MultiEmail[i]))) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 332, "", "");
+                inp_comEscAddEm.setFocus();
+                return;
+            }
+        }
+    }
+    if (inp_resRescAddMob.getValue() != "") {
+        var MultiNo = new Array();
+        MultiNo = inp_resRescAddMob.getValue().split(",");
+        for (var i = 0; i < MultiNo.length; i++) {
+            if (!(/^\d{8}$/.test(MultiNo[i]))) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 333, "", "");
+                inp_resRescAddMob.setFocus();
+                return;
+            }
+        }
+    }
+    if (inp_resRescAddEm.getValue() != "") {
+        var MultiEmail = new Array();
+        MultiEmail = inp_resRescAddEm.getValue().split(",");
+        for (var i = 0; i < MultiEmail.length; i++) {
+            if (!(/^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/.test(MultiEmail[i]))) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 334, "", "");
+                inp_resRescAddEm.setFocus();
+                return;
+            }
+        }
+    }
+
+
+    if (inp_comRescAddMob.getValue() != "") {
+        var MultiNo = new Array();
+        MultiNo = inp_comRescAddMob.getValue().split(",");
+        for (var i = 0; i < MultiNo.length; i++) {
+            if (!(/^\d{8}$/.test(MultiNo[i]))) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 335, "", "");
+                inp_comRescAddMob.setFocus();
+                return;
+            }
+        }
+    }
+    if (inp_comRescAddEm.getValue() != "") {
+        var MultiEmail = new Array();
+        MultiEmail = inp_comRescAddEm.getValue().split(",");
+        for (var i = 0; i < MultiEmail.length; i++) {
+            if (!(/^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/.test(MultiEmail[i]))) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 336, "", "");
+                inp_comRescAddEm.setFocus();
+                return;
+            }
+        }
+    }
+    if (inp_epsNode.getValue() != "") {
+        var EpsNm = inp_epsNode.getValue();
+        if (!(/^[0-9a-zA-Z ]+$/.test(EpsNm))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 337, "", "");
+            inp_epsNode.setFocus();
+            return;
+        }
+        if (!(/^[0-9a-zA-Z ]{0,100}$/.test(EpsNm))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 289, "", "");
+            inp_epsNode.setFocus();
+            return;
+        }
+    }
+    if (inp_ptfId.getValue() != "") {
+        var ptfID = inp_ptfId.getValue();
+        if (!(/^[0-9a-zA-Z ]+$/.test(ptfID))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 338, "", "");
+            inp_ptfId.setFocus();
+            return;
+        }
+        if (!(/^[0-9a-zA-Z ]{0,100}$/.test(ptfID))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 290, "", "");
+            inp_ptfId.setFocus();
+            return;
+        }
+    }
+    showLoaderMessage('DeptLoader', 'Saving.Please Wait..', '400');
+    setTimeout(function(){
+        callOnSaveClick();
+    }, 1000);
+}
+function callOnSaveClick() {
+    CFM_DeptModel.synchronize();
+    if (!CFM_DeptModel.soapFaultOccurred) {
+        var updateDeptBudgCd = cordys.cloneXMLDocument(UpdateDeptBudgCdDetails.XMLDocument);
+        var updateEstmPhDept = cordys.cloneXMLDocument(UpdateEstmPhDeptDetails.XMLDocument);
+        var deptcode = cordys.getNodeText(CFM_DeptModel.getData(), ".//*[local-name()='DeptCd']");
+        if (editflag == 1) {
+            var deptid = cordys.getNodeText(CFM_DeptModel.getData(), ".//*[local-name()='DeptID']");
+            for (var i = 0; i < list_asgnBdgt.getAllOptions().length; i++) {
+                var insertflg = 1;
+                for (var j = 0; j < olddata.length; j++) {
+                    if (list_asgnBdgt.getAllOptions()[i].value == cordys.getNodeText(olddata[j], ".//*[local-name()='BudgCdID']")) {
+                        insertflg = 0;
+                        break;
+                    } else {
+                        insertflg = 1;
+                    }
+                }
+                if (insertflg == 1) {
+                    var olddeptid;
+                    for (var k = 0; k < oldfulldata.length; k++) {
+                        var insertflg = 0;
+                        if (list_asgnBdgt.getAllOptions()[i].value == cordys.getNodeText(oldfulldata[k], ".//*[local-name()='BudgCdID']")) {
+                            insertflg = 0;
+                            olddeptid = cordys.getNodeText(oldfulldata[k], ".//*[local-name()='DeptBudgCdID']");
+                            break;
+                        } else {
+                            insertflg = 1;
+                        }
+                    }
+                    if (insertflg == 1) {
+                        var updateDepBudgCdTup = cordys.cloneXMLDocument(NewDeptBudgCdTuple.XMLDocument);
+                        cordys.setNodeText(updateDepBudgCdTup, ".//*[local-name()='BudgCdID']", list_asgnBdgt.getAllOptions()[i].value);
+                        cordys.setNodeText(updateDepBudgCdTup, ".//*[local-name()='DeptID']", deptid);
+                        cordys.appendXMLNode(cordys.selectXMLNode(updateDepBudgCdTup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(updateDeptBudgCd, ".//*[local-name()='UpdateCFM_DeptBudgCd']"));
+                    } else {
+                        var updateDepBudgCdTup = cordys.cloneXMLDocument(OldNewDeptBudgCdTuple.XMLDocument);
+                        cordys.setNodeText(updateDepBudgCdTup, ".//*[local-name()='DeptBudgCdID']", olddeptid);
+                        cordys.setNodeText(updateDepBudgCdTup, ".//*[local-name()='StatID']", "1");
+                        cordys.appendXMLNode(cordys.selectXMLNode(updateDepBudgCdTup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(updateDeptBudgCd, ".//*[local-name()='UpdateCFM_DeptBudgCd']"));
+                    }
+                }
+            }
+            for (var i = 0; i < olddata.length; i++) {
+                var deleteflg = 1;
+                for (var j = 0; j < list_asgnBdgt.getAllOptions().length; j++) {
+                    if (list_asgnBdgt.getAllOptions()[j].value == cordys.getNodeText(olddata[i], ".//*[local-name()='BudgCdID']")) {
+                        deleteflg = 0;
+                        break;
+                    } else {
+                        deleteflg = 1;
+                    }
+                }
+                if (deleteflg == 1) {
+                    var updateDepBudgCdTup = cordys.cloneXMLDocument(OldNewDeptBudgCdTuple.XMLDocument);
+                    cordys.setNodeText(updateDepBudgCdTup, ".//*[local-name()='DeptBudgCdID']", cordys.getNodeText(olddata[i], ".//*[local-name()='DeptBudgCdID']"));
+                    cordys.setNodeText(updateDepBudgCdTup, ".//*[local-name()='StatID']", "3");
+                    cordys.appendXMLNode(cordys.selectXMLNode(updateDepBudgCdTup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(updateDeptBudgCd, ".//*[local-name()='UpdateCFM_DeptBudgCd']"));
+                }
+            }
+            for (var i = 0; i < list_asgnEstmPh.getAllOptions().length; i++) {
+                var insertflg = 1;
+                for (var j = 0; j < oldestmphdept.length; j++) {
+                    if (list_asgnEstmPh.getAllOptions()[i].value == cordys.getNodeText(oldestmphdept[j], ".//*[local-name()='EstmPhID']")) {
+                        insertflg = 0;
+                        break;
+                    } else {
+                        insertflg = 1;
+                    }
+                }
+                if (insertflg == 1) {
+                    var oldEstmId;
+                    for (var k = 0; k < oldfullestmphdept.length; k++) {
+                        var insertflg = 0;
+                        if (list_asgnEstmPh.getAllOptions()[i].value == cordys.getNodeText(oldfullestmphdept[k], ".//*[local-name()='EstmPhID']")) {
+                            insertflg = 0;
+                            oldEstmId = cordys.getNodeText(oldfullestmphdept[k], ".//*[local-name()='EstmPhDeptID']");
+                            break;
+                        } else {
+                            insertflg = 1;
+                        }
+                    }
+                    if (insertflg == 1) {
+                        var updateEstmPhDeptTup = cordys.cloneXMLDocument(NewEstmPhDeptTuple.XMLDocument);
+                        cordys.setNodeText(updateEstmPhDeptTup, ".//*[local-name()='EstmPhID']", list_asgnEstmPh.getAllOptions()[i].value);
+                        cordys.setNodeText(updateEstmPhDeptTup, ".//*[local-name()='DeptID']", deptid);
+                        cordys.appendXMLNode(cordys.selectXMLNode(updateEstmPhDeptTup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(updateEstmPhDept, ".//*[local-name()='UpdateCFM_EstmPhDept']"));
+                    } else {
+                        var updateEstmPhDeptTup = cordys.cloneXMLDocument(OldNewEstmPhDeptTuple.XMLDocument);
+                        cordys.setNodeText(updateEstmPhDeptTup, ".//*[local-name()='EstmPhDeptID']", oldEstmId);
+                        cordys.setNodeText(updateEstmPhDeptTup, ".//*[local-name()='StatID']", "1");
+                        cordys.appendXMLNode(cordys.selectXMLNode(updateEstmPhDeptTup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(updateEstmPhDept, ".//*[local-name()='UpdateCFM_EstmPhDept']"));
+                    }
+                }
+            }
+            for (var i = 0; i < oldestmphdept.length; i++) {
+                var deleteflg = 1;
+                for (var j = 0; j < list_asgnEstmPh.getAllOptions().length; j++) {
+                    if (list_asgnEstmPh.getAllOptions()[j].value == cordys.getNodeText(oldestmphdept[i], ".//*[local-name()='EstmPhID']")) {
+                        deleteflg = 0;
+                        break;
+                    } else {
+                        deleteflg = 1;
+                    }
+                }
+                if (deleteflg == 1) {
+                    var updateEstmPhDeptTup = cordys.cloneXMLDocument(OldNewEstmPhDeptTuple.XMLDocument);
+                    cordys.setNodeText(updateEstmPhDeptTup, ".//*[local-name()='EstmPhDeptID']", cordys.getNodeText(oldestmphdept[i], ".//*[local-name()='EstmPhDeptID']"));
+                    cordys.setNodeText(updateEstmPhDeptTup, ".//*[local-name()='StatID']", "3");
+                    cordys.appendXMLNode(cordys.selectXMLNode(updateEstmPhDeptTup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(updateEstmPhDept, ".//*[local-name()='UpdateCFM_EstmPhDept']"));
+                }
+            }
+            operation = "edit";
+            //var createdhtuple = cordys.cloneXMLDocument(updateDepartment.XMLDocument);
+            var reqDept = UpdateDepartmentDetailsModel.getMethodRequest();
+            var updatetup = cordys.cloneXMLDocument(departmentTuple.XMLDocument);
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='group_id']", ("I-M2-" + deptcode + "-DepartmentHead"));
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='parentGroup_id']", "I-M2-DepartmentHead");
+            if (out_deptHead.getValue() == usrnm_dh) {
+                usrdn_dh = oldusrdn_dh;
+            }
+            var multiusrdn_dh = new Array();
+            multiusrdn_dh = usrdn_dh.split(";");
+            for (i = 0; i < multiusrdn_dh.length; i++) {
+                var usrdn_dhTup = cordys.cloneXMLDocument(userdns.XMLDocument);
+                cordys.setNodeText(usrdn_dhTup, ".//*[local-name()='usrdn']", multiusrdn_dh[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(usrdn_dhTup, ".//*[local-name()='usrdn']"), cordys.selectXMLNode(updatetup, ".//*[local-name()='usrdns']"));
+            }
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+            var multioldusrdn_dh = new Array();
+            multioldusrdn_dh = oldusrdn_dh.split(";");
+            for (i = 0; i < multioldusrdn_dh.length; i++) {
+                var oldusrdn_dhTup = cordys.cloneXMLDocument(olduserdns.XMLDocument);
+                cordys.setNodeText(oldusrdn_dhTup, ".//*[local-name()='oldusrdn']", multioldusrdn_dh[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(oldusrdn_dhTup, ".//*[local-name()='oldusrdn']"), cordys.selectXMLNode(updatetup, ".//*[local-name()='oldusrdns']"));
+            }
+
+            cordys.appendXMLNode(cordys.selectXMLNode(updatetup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDept, ".//*[local-name()='departmentTuples']"));
+
+            var updatetup = cordys.cloneXMLDocument(departmentTuple.XMLDocument);
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='group_id']", ("I-M2-" + deptcode + "-DepartmentBudgetCoordinator"));
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='parentGroup_id']", "I-M2-DepartmentBudgetCoordinator");
+            if (out_bdgtC.getValue() == usrnm_bc) {
+                usrdn_bc = oldusrdn_bc;
+            }
+            var multiusrdn_bc = new Array();
+            multiusrdn_bc = usrdn_bc.split(";");
+            for (i = 0; i < multiusrdn_bc.length; i++) {
+                var usrdn_bcTup = cordys.cloneXMLDocument(userdns.XMLDocument);
+                cordys.setNodeText(usrdn_bcTup, ".//*[local-name()='usrdn']", multiusrdn_bc[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(usrdn_bcTup, ".//*[local-name()='usrdn']"), cordys.selectXMLNode(updatetup, ".//*[local-name()='usrdns']"));
+            }
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+            var multioldusrdn_bc = new Array();
+            multioldusrdn_bc = oldusrdn_bc.split(";");
+            for (i = 0; i < multioldusrdn_bc.length; i++) {
+                var oldusrdn_bcTup = cordys.cloneXMLDocument(olduserdns.XMLDocument);
+                cordys.setNodeText(oldusrdn_bcTup, ".//*[local-name()='oldusrdn']", multioldusrdn_bc[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(oldusrdn_bcTup, ".//*[local-name()='oldusrdn']"), cordys.selectXMLNode(updatetup, ".//*[local-name()='oldusrdns']"));
+            }
+            cordys.appendXMLNode(cordys.selectXMLNode(updatetup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDept, ".//*[local-name()='departmentTuples']"));
+
+
+            var updatetup = cordys.cloneXMLDocument(departmentTuple.XMLDocument);
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='group_id']", ("I-M2-" + deptcode + "-DepartmentProjectCoordinator"));
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='parentGroup_id']", "I-M2-DepartmentProjectCoordinator");
+            if (out_pc.getValue() == usrnm_pc) {
+                usrdn_pc = oldusrdn_pc;
+            }
+            var multiusrdn_pc = new Array();
+            multiusrdn_pc = usrdn_pc.split(";");
+            for (i = 0; i < multiusrdn_pc.length; i++) {
+                var usrdn_pcTup = cordys.cloneXMLDocument(userdns.XMLDocument);
+                cordys.setNodeText(usrdn_pcTup, ".//*[local-name()='usrdn']", multiusrdn_pc[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(usrdn_pcTup, ".//*[local-name()='usrdn']"), cordys.selectXMLNode(updatetup, ".//*[local-name()='usrdns']"));
+            }
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+            var multioldusrdn_pc = new Array();
+            multioldusrdn_pc = oldusrdn_pc.split(";");
+            for (i = 0; i < multioldusrdn_pc.length; i++) {
+                var oldusrdn_pcTup = cordys.cloneXMLDocument(olduserdns.XMLDocument);
+                cordys.setNodeText(oldusrdn_pcTup, ".//*[local-name()='oldusrdn']", multioldusrdn_pc[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(oldusrdn_pcTup, ".//*[local-name()='oldusrdn']"), cordys.selectXMLNode(updatetup, ".//*[local-name()='oldusrdns']"));
+            }
+            cordys.appendXMLNode(cordys.selectXMLNode(updatetup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDept, ".//*[local-name()='departmentTuples']"));
+
+
+
+            var updatetup = cordys.cloneXMLDocument(departmentTuple.XMLDocument);
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='group_id']", ("I-M2-" + deptcode + "-OtherBudgetCoordinator"));
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='parentGroup_id']", "I-M2-OtherBudgetCoordinator");
+            if (out_otrBdgtC.getValue() == usrnm_obc) {
+                usrdn_obc = oldusrdn_obc;
+            }
+            var multiusrdn_obc = new Array();
+            multiusrdn_obc = usrdn_obc.split(";");
+            for (i = 0; i < multiusrdn_obc.length; i++) {
+                var usrdn_obcTup = cordys.cloneXMLDocument(userdns.XMLDocument);
+                cordys.setNodeText(usrdn_obcTup, ".//*[local-name()='usrdn']", multiusrdn_obc[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(usrdn_obcTup, ".//*[local-name()='usrdn']"), cordys.selectXMLNode(updatetup, ".//*[local-name()='usrdns']"));
+            }
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+            var multioldusrdn_obc = new Array();
+            multioldusrdn_obc = oldusrdn_obc.split(";");
+            for (i = 0; i < multioldusrdn_obc.length; i++) {
+                var oldusrdn_obcTup = cordys.cloneXMLDocument(olduserdns.XMLDocument);
+                cordys.setNodeText(oldusrdn_obcTup, ".//*[local-name()='oldusrdn']", multioldusrdn_obc[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(oldusrdn_obcTup, ".//*[local-name()='oldusrdn']"), cordys.selectXMLNode(updatetup, ".//*[local-name()='oldusrdns']"));
+            }
+            cordys.appendXMLNode(cordys.selectXMLNode(updatetup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDept, ".//*[local-name()='departmentTuples']"));
+
+
+            var updatetup = cordys.cloneXMLDocument(departmentTuple.XMLDocument);
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='group_id']", ("I-M2-" + deptcode + "-DepartmentExecutive"));
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='parentGroup_id']", "I-M2-DepartmentExecutive");
+            if (out_deptExc.getValue() == usrnm_de) {
+                usrdn_de = oldusrdn_de;
+            }
+            var multiusrdn_de = new Array();
+            multiusrdn_de = usrdn_de.split(";");
+            for (i = 0; i < multiusrdn_de.length; i++) {
+                var usrdn_deTup = cordys.cloneXMLDocument(userdns.XMLDocument);
+                cordys.setNodeText(usrdn_deTup, ".//*[local-name()='usrdn']", multiusrdn_de[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(usrdn_deTup, ".//*[local-name()='usrdn']"), cordys.selectXMLNode(updatetup, ".//*[local-name()='usrdns']"));
+            }
+            cordys.setNodeText(updatetup, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+            var multioldusrdn_de = new Array();
+            multioldusrdn_de = oldusrdn_de.split(";");
+            for (i = 0; i < multioldusrdn_de.length; i++) {
+                var oldusrdn_deTup = cordys.cloneXMLDocument(olduserdns.XMLDocument);
+                cordys.setNodeText(oldusrdn_deTup, ".//*[local-name()='oldusrdn']", multioldusrdn_de[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(oldusrdn_deTup, ".//*[local-name()='oldusrdn']"), cordys.selectXMLNode(updatetup, ".//*[local-name()='oldusrdns']"));
+            }
+            cordys.appendXMLNode(cordys.selectXMLNode(updatetup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDept, ".//*[local-name()='departmentTuples']"));
+
+        } else {
+            //Create Mode
+            var deptid = cordys.getNodeText(CFM_DeptModel.getData(), ".//*[local-name()='DeptID']");
+            for (var i = 0; i < list_asgnBdgt.getAllOptions().length; i++) {
+                var updateDepBudgCdTup = cordys.cloneXMLDocument(NewDeptBudgCdTuple.XMLDocument);
+                cordys.setNodeText(updateDepBudgCdTup, ".//*[local-name()='BudgCdID']", list_asgnBdgt.getAllOptions()[i].value);
+                cordys.setNodeText(updateDepBudgCdTup, ".//*[local-name()='DeptID']", deptid);
+                cordys.appendXMLNode(cordys.selectXMLNode(updateDepBudgCdTup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(updateDeptBudgCd, ".//*[local-name()='UpdateCFM_DeptBudgCd']"));
+            }
+            for (var i = 0; i < list_asgnEstmPh.getAllOptions().length; i++) {
+                var updateEstmPhDeptTup = cordys.cloneXMLDocument(NewEstmPhDeptTuple.XMLDocument);
+                cordys.setNodeText(updateEstmPhDeptTup, ".//*[local-name()='EstmPhID']", list_asgnEstmPh.getAllOptions()[i].value);
+                cordys.setNodeText(updateEstmPhDeptTup, ".//*[local-name()='DeptID']", deptid);
+                cordys.appendXMLNode(cordys.selectXMLNode(updateEstmPhDeptTup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(updateEstmPhDept, ".//*[local-name()='UpdateCFM_EstmPhDept']"));
+            }
+            operation = "create";
+            //var createdhtuple = cordys.cloneXMLDocument(updateDepartment.XMLDocument);
+            var reqDept = UpdateDepartmentDetailsModel.getMethodRequest();
+            var createtup = cordys.cloneXMLDocument(departmentTuple.XMLDocument);
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='group_id']", ("I-M2-" + deptcode + "-DepartmentHead"));
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='parentGroup_id']", "I-M2-DepartmentHead");
+            var multiusrdn_dh = new Array();
+            multiusrdn_dh = usrdn_dh.split(";");
+            for (i = 0; i < multiusrdn_dh.length; i++) {
+                var usrdn_dhTup = cordys.cloneXMLDocument(userdns.XMLDocument);
+                cordys.setNodeText(usrdn_dhTup, ".//*[local-name()='usrdn']", multiusrdn_dh[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(usrdn_dhTup, ".//*[local-name()='usrdn']"), cordys.selectXMLNode(createtup, ".//*[local-name()='usrdns']"));
+            }
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+            var oldusrdn_deTup = cordys.cloneXMLDocument(olduserdns.XMLDocument);
+            cordys.setNodeText(oldusrdn_deTup, ".//*[local-name()='oldusrdn']", "");
+            cordys.appendXMLNode(cordys.selectXMLNode(oldusrdn_deTup, ".//*[local-name()='oldusrdn']"), cordys.selectXMLNode(createtup, ".//*[local-name()='oldusrdns']"));
+
+            cordys.appendXMLNode(cordys.selectXMLNode(createtup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDept, ".//*[local-name()='departmentTuples']"));
+
+            var createtup = cordys.cloneXMLDocument(departmentTuple.XMLDocument);
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='group_id']", ("I-M2-" + deptcode + "-DepartmentBudgetCoordinator"));
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='parentGroup_id']", "I-M2-DepartmentBudgetCoordinator");
+            var multiusrdn_bc = new Array();
+            multiusrdn_bc = usrdn_bc.split(";");
+            for (i = 0; i < multiusrdn_bc.length; i++) {
+                var usrdn_bcTup = cordys.cloneXMLDocument(userdns.XMLDocument);
+                cordys.setNodeText(usrdn_bcTup, ".//*[local-name()='usrdn']", multiusrdn_bc[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(usrdn_bcTup, ".//*[local-name()='usrdn']"), cordys.selectXMLNode(createtup, ".//*[local-name()='usrdns']"));
+            }
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+            var oldusrdn_deTup = cordys.cloneXMLDocument(olduserdns.XMLDocument);
+            cordys.setNodeText(oldusrdn_deTup, ".//*[local-name()='oldusrdn']", "");
+            cordys.appendXMLNode(cordys.selectXMLNode(oldusrdn_deTup, ".//*[local-name()='oldusrdn']"), cordys.selectXMLNode(createtup, ".//*[local-name()='oldusrdns']"));
+            cordys.appendXMLNode(cordys.selectXMLNode(createtup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDept, ".//*[local-name()='departmentTuples']"));
+
+            var createtup = cordys.cloneXMLDocument(departmentTuple.XMLDocument);
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='group_id']", ("I-M2-" + deptcode + "-DepartmentProjectCoordinator"));
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='parentGroup_id']", "I-M2-DepartmentProjectCoordinator");
+            var multiusrdn_pc = new Array();
+            multiusrdn_pc = usrdn_pc.split(";");
+            for (i = 0; i < multiusrdn_pc.length; i++) {
+                var usrdn_pcTup = cordys.cloneXMLDocument(userdns.XMLDocument);
+                cordys.setNodeText(usrdn_pcTup, ".//*[local-name()='usrdn']", multiusrdn_pc[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(usrdn_pcTup, ".//*[local-name()='usrdn']"), cordys.selectXMLNode(createtup, ".//*[local-name()='usrdns']"));
+            }
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+            var oldusrdn_deTup = cordys.cloneXMLDocument(olduserdns.XMLDocument);
+            cordys.setNodeText(oldusrdn_deTup, ".//*[local-name()='oldusrdn']", "");
+            cordys.appendXMLNode(cordys.selectXMLNode(oldusrdn_deTup, ".//*[local-name()='oldusrdn']"), cordys.selectXMLNode(createtup, ".//*[local-name()='oldusrdns']"));
+            cordys.appendXMLNode(cordys.selectXMLNode(createtup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDept, ".//*[local-name()='departmentTuples']"));
+
+
+            var createtup = cordys.cloneXMLDocument(departmentTuple.XMLDocument);
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='group_id']", ("I-M2-" + deptcode + "-OtherBudgetCoordinator"));
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='parentGroup_id']", "I-M2-OtherBudgetCoordinator");
+            var multiusrdn_obc = new Array();
+            multiusrdn_obc = usrdn_obc.split(";");
+            for (i = 0; i < multiusrdn_obc.length; i++) {
+                var usrdn_obcTup = cordys.cloneXMLDocument(userdns.XMLDocument);
+                cordys.setNodeText(usrdn_obcTup, ".//*[local-name()='usrdn']", multiusrdn_obc[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(usrdn_obcTup, ".//*[local-name()='usrdn']"), cordys.selectXMLNode(createtup, ".//*[local-name()='usrdns']"));
+            }
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+            var oldusrdn_deTup = cordys.cloneXMLDocument(olduserdns.XMLDocument);
+            cordys.setNodeText(oldusrdn_deTup, ".//*[local-name()='oldusrdn']", "");
+            cordys.appendXMLNode(cordys.selectXMLNode(oldusrdn_deTup, ".//*[local-name()='oldusrdn']"), cordys.selectXMLNode(createtup, ".//*[local-name()='oldusrdns']"));
+            cordys.appendXMLNode(cordys.selectXMLNode(createtup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDept, ".//*[local-name()='departmentTuples']"));
+
+
+
+            var createtup = cordys.cloneXMLDocument(departmentTuple.XMLDocument);
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='group_id']", ("I-M2-" + deptcode + "-DepartmentExecutive"));
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='parentGroup_id']", "I-M2-DepartmentExecutive");
+            var multiusrdn_de = new Array();
+            multiusrdn_de = usrdn_de.split(";");
+            for (i = 0; i < multiusrdn_de.length; i++) {
+                var usrdn_deTup = cordys.cloneXMLDocument(userdns.XMLDocument);
+                cordys.setNodeText(usrdn_deTup, ".//*[local-name()='usrdn']", multiusrdn_de[i]);
+                cordys.appendXMLNode(cordys.selectXMLNode(usrdn_deTup, ".//*[local-name()='usrdn']"), cordys.selectXMLNode(createtup, ".//*[local-name()='usrdns']"));
+            }
+            cordys.setNodeText(createtup, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+            var oldusrdn_deTup = cordys.cloneXMLDocument(olduserdns.XMLDocument);
+            cordys.setNodeText(oldusrdn_deTup, ".//*[local-name()='oldusrdn']", "");
+            cordys.appendXMLNode(cordys.selectXMLNode(oldusrdn_deTup, ".//*[local-name()='oldusrdn']"), cordys.selectXMLNode(createtup, ".//*[local-name()='oldusrdns']"));
+            cordys.appendXMLNode(cordys.selectXMLNode(createtup, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDept, ".//*[local-name()='departmentTuples']"));
+
+
+
+
+            var deptHead_det = usrsel_dh.split(" - ");
+            var usrName = deptHead_det[0];
+            usrName = usrName.trim();
+            var Email = deptHead_det[1];
+            Email = Email.trim();
+            //For Fetching Email Details from Database.
+            var req = CFM_EmailMsgTmplModel.getMethodRequest();
+            cordys.setNodeText(req, ".//*[local-name()='EmailMsgTmplID']", 18);
+            CFM_EmailMsgTmplModel.setMethodRequest(req);
+            CFM_EmailMsgTmplModel.reset();
+
+            //For English Language
+            var mailSub = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjEn");
+            var mailBody = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyEn");
+            var mailBodyParams = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyParams");
+            var mailBodyParamsArray = new Array();
+            mailBodyParamsArray = mailBodyParams.split("|");
+            mailBodyParamsArray[0] = inp_deptNm.getValue();
+            for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                mailBody = mailBody.replace("{" + i + "}", mailBodyParamsArray[i]);
+            }
+            //For Arabic Language
+            var mailSubAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjAr");
+            var mailBodyAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyAr");
+            if (mailSubAr !== undefined && mailSubAr != "") {
+                for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                    mailBodyAr = mailBodyAr.replace("{" + i + "}", mailBodyParamsArray[i]);
+                }
+            }
+            if (getParameterByName('language') == 'ar-QA') {
+                var req = SendMailNotificationsModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupIDs']", "");
+                cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                cordys.setNodeText(req, ".//*[local-name()='mailIDs']", Email);
+                cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSubAr);
+                cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBodyAr);
+                SendMailNotificationsModel.setMethodRequest(req);
+                //SendMailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = SendMailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+		
+            } else {
+                var req = SendMailNotificationsModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupIDs']", "");
+                cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                cordys.setNodeText(req, ".//*[local-name()='mailIDs']", Email);
+                cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSub);
+                cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBody);
+                SendMailNotificationsModel.setMethodRequest(req);
+                //SendMailNotificationsModel.reset();
+                  //making Send mail async
+                busdataislandID.request = SendMailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+		
+            }
+            // Commented to  avoid  wait time for Mail Response--  Naveen 
+           /* if (SendMailNotificationsModel.soapFaultOccurred) {
+                showMessage(GetMsgsByFunctionAreaModel, 3, 226, "", "");
+                return;
+                
+            }*/
+        }
+        UpdateCFM_DeptBudgCdModel.clear();
+        UpdateCFM_DeptBudgCdModel.setMethodRequest(updateDeptBudgCd);
+        UpdateCFM_DeptBudgCdModel.reset();
+        UpdateCFM_EstmPhDeptModel.clear();
+        UpdateCFM_EstmPhDeptModel.setMethodRequest(updateEstmPhDept);
+        UpdateCFM_EstmPhDeptModel.reset();
+        UpdateDepartmentDetailsModel.clear();
+        cordys.setNodeText(reqDept, ".//*[local-name()='operation']", operation);
+        UpdateDepartmentDetailsModel.setMethodRequest(reqDept);
+        UpdateDepartmentDetailsModel.reset();
+        var crtsucmsg = cordys.getNodeText(UpdateDepartmentDetailsModel.getData(), ".//tns:result")
+        if (crtsucmsg == "SUCCESS") {
+            if (editflag == 1)
+                msg = 32;
+            else
+                msg = 24;
+			hideLoaderMessage('DeptLoader');
+            //alert('test');
+            application.container.close();
+        } else {
+			hideLoaderMessage('DeptLoader');
+            showMessage(GetMsgsByFunctionAreaModel, 3, 226, "", "");
+        }
+    }
+}
+
+//Method to call the loader
+function showLoaderMessage(divId, messageText, width) {
+    var loaderElement = $('#' + divId);
+    if (width == undefined || width == '') {
+        width = 300;
+    }
+    if (messageText == undefined || messageText == '') {
+        messageText = 'Waiting for the response...';
+    }
+    if (loaderElement.length == 0) {
+        $('body').append('<div id="' + divId + '" style="width: 100%; height: 100%;"><div style="display: block;position: absolute;width: ' + width + 'px;top: calc((100% - 100px) / 2);left: calc((100% - ' + width + 'px) / 2);margin: 0px 0px 0px 0px;height: 100px;padding: 0px;border: 1px solid #e1e1e1 !important;" class="fb_wrapper"><div id="feedbackbox" class="feedbackbox"><img src="wcp/theme/default/icon/interface/loading.gif" style="width: 50px;height: 50px;padding: 25px 25px;float: left;" /><div id="fb_message" style="float: left;width: calc(100% - 100px);font-size: 14px;padding: 39px 0px;">' + messageText + '</div></div></div></div>');
+        loaderElement = $('#' + divId);
+    }
+}
+
+//Method to close the loader
+function hideLoaderMessage(divId) {
+    $('#' + divId).remove();
+}
+
+//Method to sent data to parent(Department Listing Screen) form.
+function dialogReturnValue() {
+    var datac = new Object();
+    datac.msg = msg;
+    return datac;
+}
+
+//Closing the screen on click of Cancel Button.
+function btn_cancel_Click(eventObject) {
+    application.container.close();
+}
+
+//Selecting Active Budget Codes.
+function selBdgtCd_Click(eventObject) {
+    ParametersList = list_bgdt.getAllOptions();
+    ParamSelected = list_bgdt.getSelectedOptions();
+    ChosenParam = list_asgnBdgt.getAllOptions();
+    list_asgnBdgt.addOptions(ParamSelected);
+    list_asgnBdgt.removeDuplicates(ChosenParam);
+    list_bgdt.removeOptions(ParamSelected);
+}
+
+//Selecting all Active Budget Codes.
+function selAllBdgtCd_Click(eventObject) {
+    ParametersList = list_bgdt.getAllOptions();
+    ChosenParam = list_asgnBdgt.getAllOptions();
+    list_asgnBdgt.addOptions(ParametersList);
+    list_asgnBdgt.removeDuplicates(ChosenParam);
+    list_bgdt.removeOptions(ParametersList);
+}
+
+//Deselecting Active Budget Codes.
+function unselBdgtCd_Click(eventObject) {
+    ChosenParam = list_asgnBdgt.getAllOptions();
+    ChosenParamSelected = list_asgnBdgt.getSelectedOptions();
+    ParametersList = list_bgdt.getAllOptions();
+    list_bgdt.addOptions(ChosenParamSelected);
+    list_bgdt.removeDuplicates(ParametersList);
+    list_asgnBdgt.removeOptions(ChosenParamSelected);
+}
+
+//Deselecting all Active Budget Codes.
+function unselAllBdgtCd_Click(eventObject) {
+    ChosenParam = list_asgnBdgt.getAllOptions();
+    ParametersList = list_bgdt.getAllOptions();
+    list_bgdt.addOptions(ChosenParam);
+    list_bgdt.removeDuplicates(ParametersList);
+    list_asgnBdgt.removeOptions(ChosenParam);
+}
+
+//Selecting Active Estimated Phases.
+function selEstPh_Click(eventObject) {
+    ParametersList = list_estmPh.getAllOptions();
+    ParamSelected = list_estmPh.getSelectedOptions();
+    ChosenParam = list_asgnEstmPh.getAllOptions();
+    list_asgnEstmPh.addOptions(ParamSelected);
+    list_asgnEstmPh.removeDuplicates(ChosenParam);
+    list_estmPh.removeOptions(ParamSelected);
+}
+
+//Selecting all Active Estimated Phases.
+function selAllEstPh_Click(eventObject) {
+    ParametersList = list_estmPh.getAllOptions();
+    ChosenParam = list_asgnEstmPh.getAllOptions();
+    list_asgnEstmPh.addOptions(ParametersList);
+    list_asgnEstmPh.removeDuplicates(ChosenParam);
+    list_estmPh.removeOptions(ParametersList);
+}
+
+//Deselecting Active Estimated Phases.
+function unselEstPh_Click(eventObject) {
+    ChosenParam = list_asgnEstmPh.getAllOptions();
+    ChosenParamSelected = list_asgnEstmPh.getSelectedOptions();
+    ParametersList = list_estmPh.getAllOptions();
+    list_estmPh.addOptions(ChosenParamSelected);
+    list_estmPh.removeDuplicates(ParametersList);
+    list_asgnEstmPh.removeOptions(ChosenParamSelected);
+}
+
+//Deselecting All Active Estimated Phases.
+function unselAllEstPh_Click(eventObject) {
+    ChosenParam = list_asgnEstmPh.getAllOptions();
+    ParametersList = list_bgdt.getAllOptions();
+    list_estmPh.addOptions(ChosenParam);
+    list_estmPh.removeDuplicates(ParametersList);
+    list_asgnEstmPh.removeOptions(ChosenParam);
+}
+
+//Method to Call People Picker for Department Head.
+function out_deptHead_BeforeZoom(eventObject) {
+    cordys.preventDefault(eventObject);
+    var data = new Object();
+    data.from = "People";
+    data.function_area = 38;
+    data.service_error = 183;
+    data.service_auth_error = 184;
+    data.notifi_min_chars = 180;
+    data.data_unavailable = 181;
+    data.userflag = 1;
+    data.editflag = editflag;
+    data.grp = "I-M2-" + deptcode + "-DepartmentHead";
+    data.usersel = usrsel_dh;
+    data.userdn = usrdn_dh;
+    data.userval = usrval_dh;
+    application.showDialog(GetDepartmentHead.XMLDocument.documentElement, data, null, deptHeadHandler);
+}
+
+//Method to Call People Picker for Budget Co-ordinator.
+function out_bdgtC_BeforeZoom(eventObject) {
+    cordys.preventDefault(eventObject);
+    var data = new Object();
+    data.from = "People";
+    data.function_area = 38;
+    data.service_error = 183;
+    data.service_auth_error = 184;
+    data.notifi_min_chars = 180;
+    data.data_unavailable = 181;
+    data.userflag = 1;
+    data.editflag = editflag;
+    data.grp = "I-M2-" + deptcode + "-DepartmentBudgetCoordinator";
+    data.usersel = usrsel_bc;
+    data.userdn = usrdn_bc;
+    data.userval = usrval_bc;
+    application.showDialog(GetBudgetCoordinator.XMLDocument.documentElement, data, null, budgCrdnHandler);
+}
+
+//Method to Call People Picker for Project Co-ordinator.
+function out_pc_BeforeZoom(eventObject) {
+    cordys.preventDefault(eventObject);
+    var data = new Object();
+    data.from = "People";
+    data.function_area = 38;
+    data.service_error = 183;
+    data.service_auth_error = 184;
+    data.notifi_min_chars = 180;
+    data.data_unavailable = 181;
+    data.userflag = 0;
+    data.grp = "I-M2-" + deptcode + "-DepartmentProjectCoordinator";
+    data.editflag = editflag;
+    data.usersel = usrsel_pc;
+    data.userdn = usrdn_pc;
+    data.userval = usrval_pc;
+    application.showDialog(GetProjectCoordinator.XMLDocument.documentElement, data, null, prjctCrdnHandler);
+}
+
+//Method to Call People Picker for Other Budget Co-ordinator.
+function out_otrBdgtC_BeforeZoom(eventObject) {
+    cordys.preventDefault(eventObject);
+    var data = new Object();
+    data.from = "People";
+    data.function_area = 38;
+    data.service_error = 183;
+    data.service_auth_error = 184;
+    data.notifi_min_chars = 180;
+    data.data_unavailable = 181;
+    data.userflag = 0;
+    data.grp = "I-M2-" + deptcode + "-OtherBudgetCoordinator";
+    data.editflag = editflag;
+    data.usersel = usrsel_obc;
+    data.userdn = usrdn_obc;
+    data.userval = usrval_obc;
+    application.showDialog(GetOtherBudgCoordinators.XMLDocument.documentElement, data, null, otrBdgtCHandler);
+}
+
+//Method to Call People Picker for Department Executive.
+function out_deptExc_BeforeZoom(eventObject) {
+    cordys.preventDefault(eventObject);
+    var data = new Object();
+    data.from = "People";
+    data.function_area = 38;
+    data.service_error = 183;
+    data.service_auth_error = 184;
+    data.notifi_min_chars = 180;
+    data.data_unavailable = 181;
+    data.userflag = 0;
+    data.grp = "I-M2-" + deptcode + "-DepartmentExecutive";
+    data.editflag = editflag;
+    data.usersel = usrsel_de;
+    data.userdn = usrdn_de;
+    data.userval = usrval_de;
+    application.showDialog(GetDeptExecutives.XMLDocument.documentElement, data, null, deptExcHandler);
+}
+
+//This Method will set the value in the label for Department Head.
+function deptHeadHandler(dialogReturnValue) {
+    out_deptHead.setValue(dialogReturnValue.userval);
+    usrval_dh = dialogReturnValue.userval;
+    usrdn_dh = dialogReturnValue.userdn;
+    usrsel_dh = dialogReturnValue.usersel;
+}
+
+//This Method will set the value in the label for Budget Co-ordinator.
+function budgCrdnHandler(dialogReturnValue) {
+    out_bdgtC.setValue(dialogReturnValue.userval);
+    usrdn_bc = dialogReturnValue.userdn;
+    usrval_bc = dialogReturnValue.userval;
+    usrsel_bc = dialogReturnValue.usersel;
+}
+
+//This Method will set comma seperated values in the label for Project Co-ordinator if there are multiple values.
+function prjctCrdnHandler(dialogReturnValue) {
+    out_pc.setValue(dialogReturnValue.userval);
+    usrdn_pc = dialogReturnValue.userdn;
+    usrval_pc = dialogReturnValue.userval;
+    usrsel_pc = dialogReturnValue.usersel;
+}
+
+//This Method will set comma seperated values in the label for  Other Budget Co-ordinator if there are multiple values.
+function otrBdgtCHandler(dialogReturnValue) {
+    out_otrBdgtC.setValue(dialogReturnValue.userval);
+    usrdn_obc = dialogReturnValue.userdn;
+    usrval_obc = dialogReturnValue.userval;
+    usrsel_obc = dialogReturnValue.usersel;
+}
+
+//This Method will set comma seperated values in the label for Department Executive if there are multiple values.
+function deptExcHandler(dialogReturnValue) {
+    out_deptExc.setValue(dialogReturnValue.userval);
+    usrdn_de = dialogReturnValue.userdn;
+    usrval_de = dialogReturnValue.userval;
+    usrsel_de = dialogReturnValue.usersel;
+}
+
+
+//This method is used to set value for Project Coordinators Field in Edit Mode.
+function setProjectCoordinators() {
+    var nodes = cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='values'][.//*[local-name()='values']/*[local-name()='name']='cn']");
+    var strPrCo = "";
+    var i = 0;
+    for (i = 0; i < nodes.length; i++)
+        strPrCo = strPrCo + cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='name']")[i], ".") + " \n";
+    usrnm_pc = strPrCo;
+    out_pc.setValue(strPrCo);
+
+
+}
+//This method is used to set value for Other Budget Coordinators Field in Edit Mode.
+function setDeptOtherCoordinators() {
+    var nodes = cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='values'][.//*[local-name()='values']/*[local-name()='name']='cn']");
+    var strOthrBcCo = "";
+    var i = 0;
+    for (i = 0; i < nodes.length; i++)
+        strOthrBcCo = strOthrBcCo + cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='name']")[i], ".") + " \n";
+    out_otrBdgtC.setValue(strOthrBcCo);
+
+    usrnm_obc = strOthrBcCo;
+    out_otrBdgtC.setValue(strOthrBcCo);
+}
+//This method is used to set value for Department Executive Field in Edit Mode.
+function setDeptExecutive() {
+    var nodes = cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='values'][.//*[local-name()='values']/*[local-name()='name']='cn']");
+    var strDeptExc = "";
+    var i = 0;
+    for (i = 0; i < nodes.length; i++)
+        strDeptExc = strDeptExc + cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='users']/*[local-name()='users']/*[local-name()='name']")[i], ".") + " \n";
+    out_deptExc.setValue(strDeptExc);
+
+    usrnm_de = strDeptExc;
+    out_deptExc.setValue(strDeptExc);
+}
+//For Setting Missing Arabic Translations.
+function setMissingTranslations() {
+    if (getParameterByName('language') == 'ar-QA') {
+        text1.setValue("إنشاء إدارة");
+        text2.setValue("قسم التحديث");
+        sel_affairs.addOption(araffairopt, false, 0, false);
+        sel_affairs.setValue("");
+        $(".boxnavigator").addClass("boxnavigator3");
+        $(".selectboxpicker").removeClass("mr0");
+        $(".selectboxpicker2").removeClass("mr0");
+        document.getElementById("selBdgtCd").src = "qa/gov/ashghal/caprmsglobal/img/remove.png";
+        document.getElementById("selAllBdgtCd").src = "qa/gov/ashghal/caprmsglobal/img/remove-all.png";
+        document.getElementById("unselBdgtCd").src = "qa/gov/ashghal/caprmsglobal/img/add.png";
+        document.getElementById("unselAllBdgtCd").src = "qa/gov/ashghal/caprmsglobal/img/add-all.png";
+        document.getElementById("selEstPh").src = "qa/gov/ashghal/caprmsglobal/img/remove.png";
+        document.getElementById("selAllEstPh").src = "qa/gov/ashghal/caprmsglobal/img/remove-all.png";
+        document.getElementById("unselEstPh").src = "qa/gov/ashghal/caprmsglobal/img/add.png";
+        document.getElementById("unselAllEstPh").src = "qa/gov/ashghal/caprmsglobal/img/add-all.png";
+        parent.document.getElementById("fb_title").style.textAlign = "right";
+    } else {
+        sel_affairs.addOption(affairopt, false, 0, false);
+        sel_affairs.setValue("");
+    }
+
+}
+//To fetch data from config.xml file.
+function setConfigs() {
+    var req = GetXMLObjectOperationModel.getMethodRequest();
+    cordys.setNodeText(req, ".//*[local-name()='key']", "qa/gov/ashghal/usermanagement/config.xml");
+    GetXMLObjectOperationModel.setMethodRequest(req);
+    GetXMLObjectOperationModel.reset();
+
+    groupid = cordys.getNodeText(GetXMLObjectOperationModel.getData(), ".//*[local-name()='groupPartition']");
+}
+
+function Form_Init(eventObject) {
+    text1.hide();
+    text2.hide();
+}
+//This method is called on change of Department Name.
+function inp_deptNm_Change(eventObject) {
+    var DPName = inp_deptNm.getValue();
+    DPName = DPName.trim();
+    if (!(/^[0-9a-zA-Z ]+$/.test(DPName))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 299, "", "");
+        inp_deptNm.setFocus();
+        return;
+    }
+    if (!(/^[0-9a-zA-Z ]{0,255}$/.test(DPName))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 288, "", "");
+        inp_deptNm.setFocus();
+        return;
+    }
+}
+//This method is called on change of Contact Number.
+function inp_ctcNo_Change(eventObject) {
+    var ContactNo = inp_ctcNo.getValue();
+    if (!(/^\d+$/.test(ContactNo))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 301, "", "");
+        inp_ctcNo.setFocus();
+        return;
+    }
+    if (!(/^\d{8}$/.test(ContactNo))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 328, "", "");
+        inp_ctcNo.setFocus();
+        return;
+    }
+}
+//This method is called on change of Fax Number.
+function inp_fax_Change(eventObject) {
+    var fax = inp_fax.getValue();
+    if (!(/^\d+$/.test(fax))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 329, "", "");
+        inp_fax.setFocus();
+        return;
+    }
+    if (!(/^\d{8}$/.test(fax))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 330, "", "");
+        inp_fax.setFocus();
+        return;
+    }
+}
+//This method is called on change of Response Escalation Addressee Mobile.
+function inp_resEscAdMob_Change(eventObject) {
+    var MultiNo = new Array();
+    MultiNo = inp_resEscAdMob.getValue().split(",");
+    for (var i = 0; i < MultiNo.length; i++) {
+        if (!(/^\d{8}$/.test(MultiNo[i]))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 293, "", "");
+            inp_resEscAdMob.setFocus();
+            return;
+        }
+    }
+}
+//This method is called on change of Response Escalation Addressee Email.
+function inp_resEscAdEm_Change(eventObject) {
+    var MultiEmail = new Array();
+    MultiEmail = inp_resEscAdEm.getValue().split(",");
+    for (var i = 0; i < MultiEmail.length; i++) {
+        if (!(/^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/.test(MultiEmail[i]))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 292, "", "");
+            inp_resEscAdEm.setFocus();
+            return;
+        }
+    }
+}
+//This method is called on change of Completion Escalation Addressee Mobile.
+function inp_comEscAdMob_Change(eventObject) {
+    var MultiNo = new Array();
+    MultiNo = inp_comEscAdMob.getValue().split(",");
+    for (var i = 0; i < MultiNo.length; i++) {
+        if (!(/^\d{8}$/.test(MultiNo[i]))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 331, "", "");
+            inp_comEscAdMob.setFocus();
+            return;
+        }
+    }
+}
+//This method is called on change of Completion Escalation Addressee Email.
+function inp_comEscAddEm_Change(eventObject) {
+    var MultiEmail = new Array();
+    MultiEmail = inp_comEscAddEm.getValue().split(",");
+    for (var i = 0; i < MultiEmail.length; i++) {
+        if (!(/^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/.test(MultiEmail[i]))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 332, "", "");
+            inp_comEscAddEm.setFocus();
+            return;
+        }
+    }
+}
+//This method is called on change of Response Reescalation Addressee Mobile.
+function inp_resRescAddMob_Change(eventObject) {
+    var MultiNo = new Array();
+    MultiNo = inp_resRescAddMob.getValue().split(",");
+    for (var i = 0; i < MultiNo.length; i++) {
+        if (!(/^\d{8}$/.test(MultiNo[i]))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 333, "", "");
+            inp_resRescAddMob.setFocus();
+            return;
+        }
+    }
+}
+//This method is called on change of Response Reescalation Addressee Email.
+function inp_resRescAddEm_Change(eventObject) {
+    var MultiEmail = new Array();
+    MultiEmail = inp_resRescAddEm.getValue().split(",");
+    for (var i = 0; i < MultiEmail.length; i++) {
+        if (!(/^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/.test(MultiEmail[i]))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 334, "", "");
+            inp_resRescAddEm.setFocus();
+            return;
+        }
+    }
+}
+//This method is called on change of Completion Reescalation Addressee Mobile.
+function inp_comRescAddMob_Change(eventObject) {
+    var MultiNo = new Array();
+    MultiNo = inp_comRescAddMob.getValue().split(",");
+    for (var i = 0; i < MultiNo.length; i++) {
+        if (!(/^\d{8}$/.test(MultiNo[i]))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 335, "", "");
+            inp_comRescAddMob.setFocus();
+            return;
+        }
+    }
+}
+//This method is called on change of Completion Reescalation Addressee Email.
+function inp_comRescAddEm_Change(eventObject) {
+    var MultiEmail = new Array();
+    MultiEmail = inp_comRescAddEm.getValue().split(",");
+    for (var i = 0; i < MultiEmail.length; i++) {
+        if (!(/^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/.test(MultiEmail[i]))) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 336, "", "");
+            inp_comRescAddEm.setFocus();
+            return;
+        }
+    }
+}
+//This method is called on change of EPS Node Name.
+function inp_epsNode_Change(eventObject) {
+    var EpsNm = inp_epsNode.getValue();
+    if (!(/^[0-9a-zA-Z ]+$/.test(EpsNm))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 337, "", "");
+        inp_epsNode.setFocus();
+        return;
+    }
+    if (!(/^[0-9a-zA-Z ]{0,100}$/.test(EpsNm))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 289, "", "");
+        inp_epsNode.setFocus();
+        return;
+    }
+}
+//This method is called on change of PortfolioIDs.
+function inp_ptfId_Change(eventObject) {
+    var ptfID = inp_ptfId.getValue();
+    if (!(/^[0-9a-zA-Z ]+$/.test(ptfID))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 338, "", "");
+        inp_ptfId.setFocus();
+        return;
+    }
+    if (!(/^[0-9a-zA-Z ]{0,100}$/.test(ptfID))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 290, "", "");
+        inp_ptfId.setFocus();
+        return;
+    }
+}
+//This method will be called when UpdateDepartmentDetails BPM Fails. 
+function UpdateDepartmentDetailsModel_OnSOAPFault(eventObject) {
+    eventObject.showError = false;
+}
+
+function CFM_DeptModel_OnSOAPFault(eventObject) {
+    eventObject.showError = false;
+    if (eventObject.errorText =
+        "Inserting a record in the object 'CFM_Dept' has failed as the primary or unique key constraint ''XAK1CFM_Dept'.' has been violated.")
+        showMessage(GetMsgsByFunctionAreaModel, 2, 1240, "", "");
+    else
+        showMessage(GetMsgsByFunctionAreaModel, 3, 226, "", "");
+    return false;
+}
