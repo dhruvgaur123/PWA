@@ -1,0 +1,661 @@
+/**
+ * Used by Agency Manager to assign existing manager as new,
+ * create new manager and modify manager details for selected agency.
+ * @author Dhruv Gaur 
+ */
+var userid = "";
+var groupid = "";
+var editflag = 0;
+var agcyopt = {
+    value: "",
+    description: "---Select Agency---"
+};
+var aragcyoption = {
+    value: "",
+    description: "---حدد وكالة---"
+};
+var agcytype = "";
+var usersel = "";
+var userdn = "";
+var userval = "";
+var userflag = "";
+var agencycode = "";
+var selagcy_usrdn = "";
+var agency_group = "";
+var msg = "";
+var external_partition = "";
+//Form Initialization.
+function Form_InitDone(eventObject) {
+    setMissingTranslations();
+    cordys.setNodeText(eventObject.request, ".//*[local-name()='FunAreaID']", '43');
+    GetMsgsByFunctionAreaModel.reset();
+    //Form level security and actions.
+
+    var aob = [];
+    aob.push({
+        control: btn_crteNwMgr,
+        value: '33'
+    });
+    aob.push({
+        control: btn_crteNwMgr,
+        value: '34'
+    });
+    aob.push({
+        control: btn_crteNwMgr,
+        value: '35'
+    });
+    var res = isAuthorized(GetAuthorizationInfoModel, GetMsgsByFunctionAreaModel, 43, 231, 206, aob);
+    if (res == "") {
+        group1.hide();
+        grp_agcyMgr.hide();
+        text1.hide();
+        return;
+    }
+    //Form level security and actions ends.
+
+    radio1.setValue(0);
+    setConfigs();
+}
+
+//Method to change the label of the Button whenever the radio button value changes. 
+function radio1_Change(eventObject) {
+    if (radio1.getValue() == 0) {
+        inp_loginNm.disable();
+        inp_loginEm.disable();
+        inp_loginNm.show();
+        inp_loginEm.show();
+        out_loginNm_int.hide();
+        out_Email_int.hide();
+        inp_loginNm.setValue("");
+        inp_loginEm.setValue("");
+        if (getParameterByName('language') == 'ar-QA') {
+            btn_crteNwMgr.setLabel("تعيين المستخدم موجود كمدير جديد");
+            btn_crteNwMgr.title = "تعيين المستخدم موجود كمدير جديد";
+        } else {
+            btn_crteNwMgr.setLabel("Assign Manager");
+            btn_crteNwMgr.title = "Assign Manager"
+        }
+    } else if (radio1.getValue() == 1) {
+
+        if (getParameterByName('language') == 'ar-QA') {
+            btn_crteNwMgr.setLabel("إنشاء مدير جديد");
+            btn_crteNwMgr.title ="إنشاء مدير جديد";
+        } else {
+            btn_crteNwMgr.setLabel("Create New Manager");
+            btn_crteNwMgr.title = "Create New Manager";
+        }
+        sel_agcy.setValue("");
+        out_mngrNm.setValue("");
+        out_userID.setValue("");
+        out_email.setValue("");
+        sel_agcy.enable();
+        inp_loginNm.enable();
+        inp_loginEm.enable();
+        inp_loginNm.show();
+        inp_loginEm.show();
+        out_loginNm_int.hide();
+        out_Email_int.hide();
+    } else {
+        sel_agcy.enable();
+        inp_loginNm.disable();
+        inp_loginEm.disable();
+        inp_loginNm.show();
+        inp_loginEm.show();
+        inp_loginNm.setValue("");
+        inp_loginEm.setValue("");
+        out_loginNm_int.hide();
+        out_Email_int.hide();
+        if (getParameterByName('language') == 'ar-QA') {
+            btn_crteNwMgr.setLabel("تعديل تفاصيل المدير");
+            btn_crteNwMgr.title = "تعديل تفاصيل المدير";
+            
+        } else {
+            btn_crteNwMgr.setLabel("Modify Manager");
+            btn_crteNwMgr.title = "Modify Manager";
+        }
+    }
+}
+
+//This method will function according to the radio button selected.
+function btn_crteNwMgr_Click(eventObject) {
+    if (radio1.getValue() == 0) {
+        //Open people picker to select an existing manager as new manager for the selected agency.
+        if (sel_agcy.getValue() != "") {
+            cordys.preventDefault(eventObject);
+            var data =new Object();
+            data.first_listbox_caption = "All Ashghal Users";
+            data.second_listbox_caption = "Assign Agency Manager";
+            data.groupbox_caption_ar = "<span>إدارة  مدير الوكالة بالإنابة</span>";
+            data.first_listbox_caption_ar = "قائمة جميع مستخدمين أشغال";
+            data.second_listbox_caption_ar = "المستخدمين الإداريين";
+            data.groupbox_caption= "<span>A</span>ssign  <span> A</span>gency  <span>M</span>anager";
+            data.textvalue_caption = "<h3 xmlns=\"\" class=\"screentitle\"><span xmlns=\"\">A</span>ssign <span xmlns=\"\"> A</span>gency <span xmlns=\"\"> M</span>anager</h3>";
+            data.textvalue_caption_ar = "تعيين مدير الوكالة بالإنابة";   
+            data.function_area = 35;
+            data.service_error = 170;
+            data.service_auth_error = 171;
+            data.succ_msg = 169;
+            data.agcygrp = agencycode;
+            data.action_search = 18;
+            data.action_assign = 31;
+            data.mail_id = 1022;
+	    data.userflag = 1;
+            data.msg = "";
+            data.from = "Agency";
+            if (getParameterByName('language') == 'ar-QA'){
+            cordys.setNodeText(AssignExistingUserasAgencyManager.XMLDocument.documentElement,".//*[local-name()='caption']","تعيين المستخدم الحالي كمدير وكالة");
+            cordys.setNodeText(AssignExistingUserasAgencyManager.XMLDocument.documentElement,".//*[local-name()='description']","تعيين المستخدم الحالي كمدير وكالة");
+            }
+            application.showDialog(AssignExistingUserasAgencyManager.XMLDocument.documentElement, data, null, asgnMgrHandler);
+        } else {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 208, "", "");
+            return;
+        }
+    } else if (radio1.getValue() == 2) {
+        //Open Profile registration screen to edit profile if selected one is external agency.
+        if (sel_agcy.getValue() != "") {
+            var agcyData = new Object();
+            agcyData.usrflag = 1;
+            agcyData.cancelflag = 1;
+            agcyData.usr = out_userID.getValue();
+            if (getParameterByName('language') == 'ar-QA'){
+            cordys.setNodeText(ChangeAgencymanager.XMLDocument.documentElement,".//*[local-name()='caption']","تغيير مدير الوكالة");
+            cordys.setNodeText(ChangeAgencymanager.XMLDocument.documentElement,".//*[local-name()='description']","تغيير مدير الوكالة");
+            }
+            application.showDialog(ChangeAgencymanager.XMLDocument.documentElement, agcyData, null, modAgcyMgrHandler);
+        } else {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 208, "", "");
+            return;
+        }
+    } else {
+        if (sel_agcy.getValue() != "") {
+            //If agency type is external,create new user and assign agency manager.
+            if (agcytype == 1) {
+                if (inp_loginNm.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 296, "", "");
+                    return;
+                }
+                if (inp_loginEm.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 297, "", "");
+                    return;
+                }
+                var unamev = inp_loginNm.getValue();
+                var chckuser = unamev.split(" ");
+                if (chckuser.length > 1) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 298, "", "");
+                    inp_loginNm.setFocus();
+                    return;
+                }
+                if (!(/^[0-9a-zA-Z]{0,255}$/.test(inp_loginNm.getValue()))) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 294, "", "");
+                    inp_loginNm.setValue("");
+                    return;
+                }
+                if (!(/^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/.test(inp_loginEm.getValue()))) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 295, "", "");
+                    inp_loginEm.setValue("");
+                    return;
+                }
+                
+                var req = RemoveUserFromGroupModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupId']", agencycode + "-AgencyManager");
+                cordys.setNodeText(req, ".//*[local-name()='userId']", selagcy_usrdn);
+                RemoveUserFromGroupModel.setMethodRequest(req);
+                RemoveUserFromGroupModel.reset();
+                
+                var req = RemoveUserFromGroupModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupId']", "X-M2-AgencyManager");
+                cordys.setNodeText(req, ".//*[local-name()='userId']", selagcy_usrdn);
+                RemoveUserFromGroupModel.setMethodRequest(req);
+                RemoveUserFromGroupModel.reset();
+
+                
+                params = [];
+                params.push("mail");
+                params.push("oTExtraAttr2");
+
+                paramValues = [];
+                paramValues.push(inp_loginEm.getValue());
+                paramValues.push("No");
+                createUserProfile(CreateOTDSUserModel, ("X-M2-" + inp_loginNm.getValue()), external_partition, params, paramValues);
+                var crtsucmsg = cordys.getNodeText(CreateOTDSUserModel.getData(), ".//tns:result")
+                if (crtsucmsg == "SUCCESS") {
+                    var ID = "X-M2-" + inp_loginNm.getValue()
+                    setNewUserPassword(ID);
+                    var req = GetOTDSUserProfileModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='userId']", ID);
+                    GetOTDSUserProfileModel.setMethodRequest(req);
+                    GetOTDSUserProfileModel.reset();
+                    var NewUsrDn = cordys.getNodeText(GetOTDSUserProfileModel.getData(), ".//tns:location");
+
+                   
+                    var req = AssignUserToGroupModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='groupId']", agencycode + "-AgencyManager");
+                    cordys.setNodeText(req, ".//*[local-name()='userId']", NewUsrDn);
+                    AssignUserToGroupModel.setMethodRequest(req);
+                    AssignUserToGroupModel.reset();
+                    
+                    var req = AssignUserToGroupModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='groupId']", "X-M2-AgencyManager");
+                    cordys.setNodeText(req, ".//*[local-name()='userId']", NewUsrDn);
+                    AssignUserToGroupModel.setMethodRequest(req);
+                    AssignUserToGroupModel.reset();
+                }
+
+
+                var usrID = inp_loginNm.getValue();
+                var usrMailID = inp_loginEm.getValue();
+                
+				var accessLink =  profile_link + usrID;
+				var today = new Date();
+				var dd = today.getDate();
+				var mm = today.getMonth()+1; //January is 0!
+				var yyyy = today.getFullYear();
+				if(dd<10) {
+					dd = '0'+dd
+				} 
+
+				if(mm<10) {
+					mm = '0'+mm
+				} 
+
+				today = mm + '/' + dd + '/' + yyyy;
+
+                //For Fetching Email Details from Database.
+                var req = CFM_EmailMsgTmplModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='EmailMsgTmplID']", 21);
+                CFM_EmailMsgTmplModel.setMethodRequest(req);
+                CFM_EmailMsgTmplModel.reset();
+
+                //For English Language
+                var mailSub = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjEn");
+                var mailBody = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyEn");
+               
+                var mailBodyParams = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyParams");
+                var mailBodyParamsArray = new Array();
+                mailBodyParamsArray = mailBodyParams.split("|");
+				mailBodyParamsArray[0] = "X-M2-" + usrID;
+                mailBodyParamsArray[1] = "P@ssw0rd";
+                mailBodyParamsArray[2] = usrMailID;
+                mailBodyParamsArray[3] = today;
+				mailBodyParamsArray[4] = accessLink;
+                for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                    mailBody = mailBody.replace("{" + i + "}", mailBodyParamsArray[i]);
+                }
+                //For Arabic Language
+                var mailSubAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjAr");
+                var mailBodyAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyAr");
+                if (mailSubAr !== undefined && mailSubAr != "") {
+                    for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                        mailBodyAr = mailBodyAr.replace("{" + i + "}", mailBodyParamsArray[i]);
+                    }
+                }
+                if (getParameterByName('language') == 'ar-QA') {
+                    var req = SendMailNotificationsModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='groupIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='mailIDs']", usrMailID);
+                    cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSubAr);
+                    cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBodyAr);
+                    SendMailNotificationsModel.setMethodRequest(req);
+                    //SendMailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = SendMailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+                } else {
+                    var req = SendMailNotificationsModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='groupIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='mailIDs']", usrMailID);
+                    cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSub);
+                    cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBody);
+                    SendMailNotificationsModel.setMethodRequest(req);
+                    //SendMailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = SendMailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+                }
+                if (SendMailNotificationsModel.soapFaultOccurred){
+				showMessage(GetMsgsByFunctionAreaModel, 3, 231, "", "");
+				return;
+			}
+                sel_agcy.setValue("");
+                out_mngrNm.setValue("");
+                out_userID.setValue("");
+                out_email.setValue("");
+                out_loginNm_int.setValue("");
+                out_Email_int.setValue("");
+                inp_loginNm.setValue("");
+                inp_loginEm.setValue("");
+                showMessage(GetMsgsByFunctionAreaModel, 1, 343, "", "");
+
+            } else {
+            
+                if (out_loginNm_int.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 390, "", "");
+                    return;
+                }
+                
+                var req = RemoveUserFromGroupModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupId']", agencycode + "-AgencyManager");
+                cordys.setNodeText(req, ".//*[local-name()='userId']", selagcy_usrdn);
+                RemoveUserFromGroupModel.setMethodRequest(req);
+                RemoveUserFromGroupModel.reset();
+                var req = RemoveUserFromGroupModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupId']", "I-M2-AgencyManager");
+                cordys.setNodeText(req, ".//*[local-name()='userId']", selagcy_usrdn);
+                RemoveUserFromGroupModel.setMethodRequest(req);
+                RemoveUserFromGroupModel.reset();
+                var req = AssignUserToGroupModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupId']", agencycode + "-AgencyManager");
+                cordys.setNodeText(req, ".//*[local-name()='userId']", userdn);
+                AssignUserToGroupModel.setMethodRequest(req);
+                AssignUserToGroupModel.reset();
+                var req = AssignUserToGroupModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupId']", "I-M2-AgencyManager");
+                cordys.setNodeText(req, ".//*[local-name()='userId']", userdn);
+                AssignUserToGroupModel.setMethodRequest(req);
+                AssignUserToGroupModel.reset();
+				
+				var usrMailID = out_Email_int.getValue();
+				var today = new Date();
+				var dd = today.getDate();
+				var mm = today.getMonth()+1; //January is 0!
+				var yyyy = today.getFullYear();
+				if(dd<10) {
+					dd = '0'+dd
+				} 
+
+				if(mm<10) {
+					mm = '0'+mm
+				} 
+
+				today = mm + '/' + dd + '/' + yyyy;
+
+                //For Fetching Email Details from Database.
+                var req = CFM_EmailMsgTmplModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='EmailMsgTmplID']", 12);
+                CFM_EmailMsgTmplModel.setMethodRequest(req);
+                CFM_EmailMsgTmplModel.reset();
+
+                //For English Language
+                var mailSub = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjEn");
+                var mailBody = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyEn");
+               
+                var mailBodyParams = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyParams");
+                var mailBodyParamsArray = new Array();
+                mailBodyParamsArray = mailBodyParams.split("|");
+				mailBodyParamsArray[0] = sel_agcy.getFormattedValue();
+                mailBodyParamsArray[1] = userval;
+                mailBodyParamsArray[2] = out_Email_int.getValue();
+				mailBodyParamsArray[3] = login_link;
+                mailBodyParamsArray[4] = today;
+                for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                    mailBody = mailBody.replace("{" + i + "}", mailBodyParamsArray[i]);
+                }
+                //For Arabic Language
+                var mailSubAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjAr");
+                var mailBodyAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyAr");
+                if (mailSubAr !== undefined && mailSubAr != "") {
+                    for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                        mailBodyAr = mailBodyAr.replace("{" + i + "}", mailBodyParamsArray[i]);
+                    }
+                }
+                if (getParameterByName('language') == 'ar-QA') {
+                    var req = SendMailNotificationsModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='groupIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='mailIDs']", usrMailID);
+                    cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSubAr);
+                    cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBodyAr);
+                    SendMailNotificationsModel.setMethodRequest(req);
+                    //SendMailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = SendMailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+                } else {
+                    var req = SendMailNotificationsModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='groupIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='mailIDs']", usrMailID);
+                    cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSub);
+                    cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBody);
+                    SendMailNotificationsModel.setMethodRequest(req);
+                    //SendMailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = SendMailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+                }
+                if (SendMailNotificationsModel.soapFaultOccurred){
+				showMessage(GetMsgsByFunctionAreaModel, 3, 231, "", "");
+				return;
+			}
+				
+                showMessage(GetMsgsByFunctionAreaModel, 1, 391, "", "");
+                sel_agcy.setValue("");
+                out_mngrNm.setValue("");
+                out_userID.setValue("");
+                out_email.setValue("");
+                out_loginNm_int.setValue("");
+                out_Email_int.setValue("");
+                inp_loginNm.setValue("");
+                inp_loginEm.setValue("");
+            }
+        } else {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 208, "", "");
+            return;
+        }
+
+
+    }
+}
+
+//Method to get value after returning to the respective screen.
+function asgnMgrHandler(dialogReturnValue) {
+    if (dialogReturnValue.msg != "") {
+        showMessage(GetMsgsByFunctionAreaModel, 1, dialogReturnValue.msg, "", "35");
+    }
+    if (dialogReturnValue.msg == "") {
+        return false;
+    }
+    sel_agcy.setValue("");
+    out_mngrNm.setValue("");
+    out_userID.setValue("");
+    out_email.setValue("");
+    cordys.setNodeText(GetMsgsByFunctionAreaModel.getMethodRequest(), ".//*[local-name()='FunAreaID']", '43');
+    GetMsgsByFunctionAreaModel.reset();
+}
+
+//Method to get value after returning to the repective screen.
+function modAgcyMgrHandler(dialogReturnValue) {
+    if (dialogReturnValue.msg_createagencymgr!= "") {
+        showMessage(GetMsgsByFunctionAreaModel, 1, dialogReturnValue.msg_createagencymgr, "", "34");
+    }
+    cordys.setNodeText(GetMsgsByFunctionAreaModel.getMethodRequest(), ".//*[local-name()='FunAreaID']", '43');
+    GetMsgsByFunctionAreaModel.reset();
+}
+
+//Closing the screen on click of Cancel Button.
+function btn_clr_Click(eventObject) {
+    sel_agcy.setValue("");
+    inp_loginNm.disable();
+    inp_loginEm.disable();
+    inp_loginNm.show();
+    inp_loginEm.show();
+    out_loginNm_int.hide();
+    out_Email_int.hide();
+    out_mngrNm.setValue("");
+    out_userID.setValue("");
+    out_email.setValue("");
+    radio1.setValue(0);
+    out_loginNm_int.setValue("");
+    out_Email_int.setValue("");
+    inp_loginNm.setValue("");
+    inp_loginEm.setValue("");
+    
+}
+
+//This method is called whenever agency is changed.
+function sel_agcy_Change(eventObject) {
+    if (sel_agcy.getValue() == "")
+    {
+        out_mngrNm.setValue("");
+        out_userID.setValue("");
+        out_email.setValue("");
+        out_loginNm_int.setValue("");
+        out_Email_int.setValue("");
+        inp_loginNm.setValue("");
+        inp_loginEm.setValue("");
+        return;
+    }
+    out_loginNm_int.setValue("");
+    out_Email_int.setValue("");
+    inp_loginNm.setValue("");
+    inp_loginEm.setValue("");
+    agcytype = cordys.getNodeText(GetActiveAgenciesModel.getData(), ".//*[local-name()='CFM_Agcy'][.//*[local-name()='AgcyCdSys'] = '" + sel_agcy.getValue() + "']/*[local-name()='AgcyTypID']");
+
+    if (agcytype == 1) {
+        agencycode = "X-M2-" + sel_agcy.getValue();
+        out_loginNm_int.hide();
+        out_Email_int.hide();
+        inp_loginNm.show();
+        inp_loginEm.show();
+        radio1[2].show();
+    } else {
+        agencycode = "I-M2-" + sel_agcy.getValue();
+        inp_loginNm.hide();
+        inp_loginEm.hide();
+        out_loginNm_int.show();
+        out_Email_int.show();
+        radio1[2].hide();
+        if (radio1.getValue() == 0) {
+            inp_loginNm.show();
+            inp_loginEm.show();
+            out_loginNm_int.hide();
+            out_Email_int.hide();
+        }
+    }
+    var req = GetOTDSGroupUsersModel.getMethodRequest();
+    cordys.setNodeText(req, ".//*[local-name()='groupId']", agencycode + "-AgencyManager");
+    GetOTDSGroupUsersModel.setMethodRequest(req);
+    GetOTDSGroupUsersModel.reset();
+
+    var mailID = cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']");
+    var UName = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:name");
+    var usrID1 = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:id");
+    selagcy_usrdn = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:location");
+
+    out_mngrNm.setValue(UName);
+    out_userID.setValue(usrID1);
+    out_email.setValue(mailID);
+
+}
+//For Setting Missing Arabic Translations.
+function setMissingTranslations() {
+    if (getParameterByName('language') == 'ar-QA') {
+        $("#xbody_group").css("padding-left", "inherit").css("padding-right", "65px");
+        text1.setValue("إنشاء مدير وكالة");
+        sel_agcy.addOption(aragcyoption, false, 0, false);
+        sel_agcy.setValue("");
+        grp_agcyMgr.setLabel("ادارة مدير وكالة");
+         $(".groupcontent .v_label").css("text-align", "right"); 
+         $(".h_choicebox label").css("text-align", "right");
+         
+         parent.document.getElementById("radio1[1]").style.width = "175px";      
+    } else {
+        sel_agcy.addOption(agcyopt, false, 0, false);
+        sel_agcy.setValue("");
+    }
+}
+//To fetch data from config.xml file.
+function setConfigs() {
+    var req = GetXMLObjectOperationModel.getMethodRequest();
+    cordys.setNodeText(req, ".//*[local-name()='key']", "qa/gov/ashghal/usermanagement/config.xml");
+    GetXMLObjectOperationModel.setMethodRequest(req);
+    GetXMLObjectOperationModel.reset();
+    external_partition = cordys.getNodeText(GetXMLObjectOperationModel.getData(), ".//*[local-name()='externalPartition']");
+    groupid = cordys.getNodeText(GetXMLObjectOperationModel.getData(), ".//*[local-name()='groupPartition']");
+    profile_link = cordys.getNodeText(GetXMLObjectOperationModel.getData(), ".//*[local-name()='profileLink']");
+	login_link = cordys.getNodeText(GetXMLObjectOperationModel.getData(), ".//*[local-name()='loginLink']");
+}
+
+function sel_agcy_BeforeFill(eventObject) {
+    eventObject.returnValue = false;
+    if (getParameterByName('language') == 'ar-QA')
+        eventObject.srcElement.addOption({
+            value: cordys.getNodeText(eventObject.xml, ".//*[local-name()='AgcyCdSys']"),
+            description: cordys.getNodeText(eventObject.xml, ".//*[local-name()='AgcyArNm']")
+        }, false, 0, false);
+    else
+        eventObject.srcElement.addOption({
+            value: cordys.getNodeText(eventObject.xml, ".//*[local-name()='AgcyCdSys']"),
+            description: cordys.getNodeText(eventObject.xml, ".//*[local-name()='AgcyEnNm']")
+        }, false, 0, false);
+}
+//This method is called before opening zoom box.
+function out_loginNm_int_BeforeZoom(eventObject) {
+    cordys.preventDefault(eventObject);
+    var data = new Object();
+    data.from = "People";
+    data.function_area = 38;
+    data.service_error = 183;
+    data.service_auth_error = 184;
+    data.notifi_min_chars = 180;
+    data.data_unavailable = 181;
+    data.userflag = 1;
+    data.editflag = editflag;
+    data.grp = ("I-M2-" + sel_agcy.getValue() + "AgencyManager");
+    data.usersel = usersel;
+    data.userdn = userdn;
+    data.userval = userval;
+    if (getParameterByName('language') == 'ar-QA'){
+            cordys.setNodeText(CreateAgencyManager.XMLDocument.documentElement,".//*[local-name()='caption']","إنشاء مدير وكالة");
+            cordys.setNodeText(CreateAgencyManager.XMLDocument.documentElement,".//*[local-name()='description']","إنشاء مدير وكالة");
+            }
+    application.showDialog(CreateAgencyManager.XMLDocument.documentElement, data, null, callBckHandler);
+
+}
+//This method receives data from child(People Picker Screen) form.
+function callBckHandler(dialogReturnValue) {
+
+    userdn = dialogReturnValue.userdn;
+    out_loginNm_int.setValue(dialogReturnValue.userval);
+    userval = dialogReturnValue.userval;
+    usersel = dialogReturnValue.usersel;
+    out_Email_int.setValue(dialogReturnValue.usersel.split("- ")[1]);
+}
+//This method is called on change of Login Name.
+function inp_loginNm_Change(eventObject) {
+    var unamev = inp_loginNm.getValue();
+    var chckuser = unamev.split(" ");
+    if (chckuser.length > 1) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 298, "", "");
+        inp_loginNm.setFocus();
+        return;
+    }
+    if (!(/^[0-9a-zA-Z]{0,255}$/.test(inp_loginNm.getValue()))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 294, "", "");
+        inp_loginNm.setValue("");
+        return;
+    }
+}
+//This method is called on change of Login Email.
+function inp_loginEm_Change(eventObject) {
+    var Email = inp_loginEm.getValue();
+    if(Email != "")
+    {
+    if (!(/^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/.test(Email))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 295, "", "");
+        inp_loginEm.setFocus();
+        return;
+    }
+   } 
+}
+//For setting new password for the created user.
+function setNewUserPassword(strUserID) {
+    var req = ResetOTDSUserPasswordModel.getMethodRequest();
+    cordys.setNodeText(req, ".//*[local-name()='userId']", strUserID);
+    cordys.setNodeText(req, ".//*[local-name()='oldPassword']", "");
+    cordys.setNodeText(req, ".//*[local-name()='newPassword']", "P@ssw0rd");
+    ResetOTDSUserPasswordModel.reset();
+}
