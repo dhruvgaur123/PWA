@@ -1,0 +1,334 @@
+/**
+ * Lists all Departments.
+ * Can Create,Edit,Delete and Search Departments.
+ * @author Dhruv Gaur
+ */
+var userid = "";
+var groupid = "";
+//Form Initialization.
+function Form_InitDone(eventObject) {
+
+    setMissingTranslations();
+    //Form level message.
+    cordys.setNodeText(GetMsgsByFunctionAreaModel.getMethodRequest(), ".//*[local-name()='FunAreaID']", 5);
+    GetMsgsByFunctionAreaModel.reset();
+    //Form level security Start. 
+    var aob = [];
+    aob.push({
+        control: navInsert1,
+        value: '15'
+    });
+    aob.push({
+        control: navEdit1,
+        value: '16'
+    });
+    aob.push({
+        control: navDelete1,
+        value: '17'
+    });
+    aob.push({
+        control: btn_search,
+        value: '18'
+    });
+    aob.push({
+        control: nav_Excel1,
+        value: '20'
+    });
+    var res = isAuthorized(GetAuthorizationInfoModel, GetMsgsByFunctionAreaModel, 5, 230, 227, aob);
+    if (res == "") {
+        grp_search.hide();
+        grp_department.hide();
+        text1.hide();
+        return;
+    }
+    //Form level security Ends.
+    setConfigs();
+    dept_table.hideColumn(1);
+    dept_table.hideColumn(8);
+    GetDepartmentOnSearchModel.reset();
+    navEdit1.disable();
+    navDelete1.disable();
+
+}
+
+//Method to search for Departments.
+function btn_search_Click(eventObject) {
+    if (!(/^-?\d*\.?\d*$/.test(inp_contactno.getValue()))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 259, "", "");
+        inp_contactno.setValue("");
+        inp_contactno.setFocus();
+        return;
+    }
+
+    GetDepartmentOnSearchModel.reset();
+    if (cordys.selectXMLNodes(GetDepartmentOnSearchModel.getData(), ".//*[local-name()='tuple']").length == 0) {
+        showMessage(GetMsgsByFunctionAreaModel, 1, 22, "", "");
+        return false;
+    }
+    else
+        showMessage(GetMsgsByFunctionAreaModel, 1, 23, "", "");
+}
+
+//Method to add new Department.
+function navInsert1_Click(eventObject) {
+    var param = new Object();
+    param.Id = "";
+    param.editflg = 0;
+    if (getParameterByName('language') == 'ar-QA'){
+    cordys.setNodeText(AddDepartment.XMLDocument.documentElement,".//*[local-name()='caption']","إنشاء إدارة");
+    cordys.setNodeText(AddDepartment.XMLDocument.documentElement,".//*[local-name()='description']","إنشاء إدارة");
+    }
+    application.showDialog(AddDepartment.XMLDocument.documentElement, param, null, returnHandler);
+}
+
+//Method to edit existing Department.
+function navEdit1_Click(eventObject) {
+    var param = new Object();
+    var indx = dept_table.getCheckedRows()[0].index;
+    param.Id = out_id[indx].getValue();
+    param.editflg = 1;
+    if (getParameterByName('language') == 'ar-QA'){
+    cordys.setNodeText(EditDepartment.XMLDocument.documentElement,".//*[local-name()='caption']","قسم التحديث");
+    cordys.setNodeText(EditDepartment.XMLDocument.documentElement,".//*[local-name()='description']","قسم التحديث");
+    }
+    application.showDialog(EditDepartment.XMLDocument.documentElement, param, null, returnHandler);
+}
+
+//This method receives data from child(Create Department Screen) form.
+function returnHandler(dialogReturnValue) {
+
+if (dialogReturnValue.msg != "") {
+        showMessage(GetMsgsByFunctionAreaModel, 1, dialogReturnValue.msg, "", "1");
+    }
+    cordys.setNodeText(GetMsgsByFunctionAreaModel.getMethodRequest(), ".//*[local-name()='FunAreaID']", 5);
+    GetMsgsByFunctionAreaModel.reset();
+    
+    dept_table.refresh();
+    GetDepartmentOnSearchModel.reset();
+    
+    navEdit1.disable();
+    
+}
+
+//Method to soft delete department that is to make that department inactive. 
+function navDelete1_Click(eventObject) {
+    var indx = dept_table.getCheckedRows()[0].index;
+    var DName = out_name[indx].getValue();
+    var req = CFM_DeptModel.getMethodRequest();
+    cordys.setNodeText(req, ".//*[local-name()='DepartmentID']", DName);
+    CFM_DeptModel.setMethodRequest(req);
+    CFM_DeptModel.reset();
+    var count = cordys.getNodeText(CFM_DeptModel.getData(), ".//tns:DeptCount");
+    //Check whether department is in use in some other screen and throws error if it is in use.
+    if (count == 1) {
+        showMessage(GetMsgsByFunctionAreaModel, 3, 34, "", "");
+        return;
+    } else {
+        var deldept = cordys.cloneXMLDocument(DeleteDepartmentDetails.XMLDocument);
+        for (var i = 0; i < dept_table.getCheckedRows().length; i++) {
+            var deltuple = cordys.cloneXMLDocument(DeleteDepartmentTuple.XMLDocument);
+            cordys.setNodeText(deltuple, ".//*[local-name()='tuple']/*[local-name()='old']/*[local-name()='CFM_Dept']/*[local-name()='DeptID']", out_id[dept_table.getCheckedRows()[i].index].getValue());
+            cordys.appendXMLNode(cordys.selectXMLNode(deltuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(deldept, ".//*[local-name()='UpdateCFM_Dept']"));
+
+            var deptCode = out_deptCd[dept_table.getCheckedRows()[i].index].getValue();
+            var req = GetOTDSGroupUsersModel.getMethodRequest();
+            cordys.setNodeText(req, ".//*[local-name()='groupId']", "I-M2-" + deptCode + "-DepartmentHead");
+            GetOTDSGroupUsersModel.setMethodRequest(req);
+            GetOTDSGroupUsersModel.reset();
+            var deptHeadEmail = cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']")
+            var deptHeadName = cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='displayName']")[1], ".//*[local-name()='values']")
+
+            var DeptName = out_name[dept_table.getCheckedRows()[i].index].getValue();
+
+            //Delete groups from OTDS when the department is deleted.
+            var reqDeptDel = UpdateDepartmentDetailsModel.getMethodRequest();
+
+            var createDepTuple = cordys.cloneXMLDocument(DeptDelete.XMLDocument);
+            cordys.setNodeText(createDepTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "I-M2-" + deptCode + "-DepartmentHead");
+            cordys.setNodeText(createDepTuple, ".//*[local-name()='tuple']/*[local-name()='parentGroupId']", "I-M2-DepartmentHead");
+            cordys.appendXMLNode(cordys.selectXMLNode(createDepTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDeptDel, ".//*[local-name()='departmentTuples']"));
+
+            var createDepTuple = cordys.cloneXMLDocument(DeptDelete.XMLDocument);
+            cordys.setNodeText(createDepTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "I-M2-" + deptCode + "-DepartmentBudgetCoordinator");
+            cordys.setNodeText(createDepTuple, ".//*[local-name()='tuple']/*[local-name()='parentGroupId']", "I-M2-DepartmentBudgetCoordinator");
+            cordys.appendXMLNode(cordys.selectXMLNode(createDepTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDeptDel, ".//*[local-name()='departmentTuples']"));
+
+            var createDepTuple = cordys.cloneXMLDocument(DeptDelete.XMLDocument);
+            cordys.setNodeText(createDepTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "I-M2-" + deptCode + "-DepartmentProjectCoordinator");
+            cordys.setNodeText(createDepTuple, ".//*[local-name()='tuple']/*[local-name()='parentGroupId']", "I-M2-DepartmentProjectCoordinator");
+            cordys.appendXMLNode(cordys.selectXMLNode(createDepTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDeptDel, ".//*[local-name()='departmentTuples']"));
+
+            var createDepTuple = cordys.cloneXMLDocument(DeptDelete.XMLDocument);
+            cordys.setNodeText(createDepTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "I-M2-" + deptCode + "-OtherBudgetCoordinator");
+            cordys.setNodeText(createDepTuple, ".//*[local-name()='tuple']/*[local-name()='parentGroupId']", "I-M2-OtherBudgetCoordinator");
+            cordys.appendXMLNode(cordys.selectXMLNode(createDepTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDeptDel, ".//*[local-name()='departmentTuples']"));
+
+            var createDepTuple = cordys.cloneXMLDocument(DeptDelete.XMLDocument);
+            cordys.setNodeText(createDepTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "I-M2-" + deptCode + "-DepartmentExecutive");
+            cordys.setNodeText(createDepTuple, ".//*[local-name()='tuple']/*[local-name()='parentGroupId']", "I-M2-DepartmentExecutive");
+            cordys.appendXMLNode(cordys.selectXMLNode(createDepTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqDeptDel, ".//*[local-name()='departmentTuples']"));
+
+            cordys.setNodeText(reqDeptDel, ".//*[local-name()='operation']", "delete");
+            UpdateDepartmentDetailsModel.setMethodRequest(reqDeptDel);
+            UpdateDepartmentDetailsModel.reset();
+            var crtsucmsg = cordys.getNodeText(UpdateDepartmentDetailsModel.getData(), ".//tns:result");
+            if (crtsucmsg != "SUCCESS") {
+                showMessage(GetMsgsByFunctionAreaModel, 3, 230, "", "");
+                return;
+            }
+
+
+            var req = CFM_EmailMsgTmplModel.getMethodRequest();
+            cordys.setNodeText(req, ".//*[local-name()='EmailMsgTmplID']", 13);
+            CFM_EmailMsgTmplModel.setMethodRequest(req);
+            CFM_EmailMsgTmplModel.reset();
+
+            //For English Language
+            var mailSub = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjEn");
+            var mailBody = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyEn");
+
+            var mailBodyParams = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyParams");
+            var mailBodyParamsArray = new Array();
+            mailBodyParamsArray = mailBodyParams.split("|");
+            mailBodyParamsArray[0] = DeptName;
+
+            for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                mailBody = mailBody.replace("{" + i + "}", mailBodyParamsArray[i]);
+            }
+            //For Arabic Language
+            var mailSubAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjAr");
+            var mailBodyAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyAr");
+            if (mailSubAr !== undefined && mailSubAr != "") {
+                for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                    mailBodyAr = mailBodyAr.replace("{" + i + "}", mailBodyParamsArray[i]);
+                }
+            }
+            if (getParameterByName('language') == 'ar-QA') {
+                var req = SendMailNotificationsModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupIDs']", "");
+                cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                cordys.setNodeText(req, ".//*[local-name()='mailIDs']", deptHeadEmail);
+                cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSubAr);
+                cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBodyAr);
+                SendMailNotificationsModel.setMethodRequest(req);
+                //SendMailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = SendMailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+            } else {
+                var req = SendMailNotificationsModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupIDs']", "");
+                cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                cordys.setNodeText(req, ".//*[local-name()='mailIDs']", deptHeadEmail);
+                cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSub);
+                cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBody);
+                SendMailNotificationsModel.setMethodRequest(req);
+                //SendMailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = SendMailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+            }
+	            if (SendMailNotificationsModel.soapFaultOccurred){
+				showMessage(GetMsgsByFunctionAreaModel, 3, 230, "", "");
+				return;
+			}
+        }
+        DeleteModel.clear();
+        DeleteModel.setMethodRequest(deldept);
+        DeleteModel.reset();
+		if (DeleteModel.soapFaultOccurred){
+			showMessage(GetMsgsByFunctionAreaModel, 3, 230, "", "");
+			return;
+		}
+        navDelete1.disable();
+        navEdit1.disable();
+    }
+    showMessage(GetMsgsByFunctionAreaModel, 1, 33, "", "");
+    GetDepartmentOnSearchModel.clear();
+    GetDepartmentOnSearchModel.reset();
+}
+
+//Method to check the selected rows from the table
+function dept_table_OnRowChecked(eventObject) {
+    if (dept_table.getCheckedRows().length == 1) {
+        navEdit1.enable();
+        navDelete1.enable();
+    } else if (dept_table.getCheckedRows().length > 1) {
+        navEdit1.disable();
+        navDelete1.disable();
+    } else {
+        navEdit1.disable();
+        navDelete1.disable();
+    }
+}
+
+
+//This method is called when excel file download is requested.
+function nav_Excel1_Click(eventObject) {
+    var exd = new ExcelDownload();
+    exd.serviceModel = DownloadExcelModel;
+    exd.serviceName = "GetDepartmentOnSearch";
+    exd.serviceNamespace = "http://ashghal.gov.qa/wsapps/configurationservices";
+    exd.addServiceParameter("DeptName", inp_name.getValue());
+    exd.addServiceParameter("ContNum", inp_contactno.getValue());
+    if (getParameterByName('language') == 'ar-QA') {
+    exd.addExcelColumn("اسم القسم", "DeptNm", "string");
+    exd.addExcelColumn("العنوان البريدي", "MailingAddr", "string");
+    exd.addExcelColumn("رقم الاتصال", "CtcNum", "string");
+    exd.addExcelColumn("رقم الفاكس", "FaxNum", "string");
+    exd.addExcelColumn("إبس اسم العقدة", "EPSNodeNm", "string");
+    exd.addExcelColumn("معرف محفظة", "PrtfIDs", "string");
+    }
+    else{
+    exd.addExcelColumn("Department Name", "DeptNm", "string");
+    exd.addExcelColumn("Mailing Address", "MailingAddr", "string");
+    exd.addExcelColumn("Contact Number", "CtcNum", "string");
+    exd.addExcelColumn("Fax Number", "FaxNum", "string");
+    exd.addExcelColumn("EPS Node Name", "EPSNodeNm", "string");
+    exd.addExcelColumn("Portfolio ID", "PrtfIDs", "string");
+    }
+    exd.excelFileName = "Department List ";
+    exd.generateExcel();
+}
+
+//For Setting Missing Arabic Translations.
+function setMissingTranslations() {
+
+    if (getParameterByName('language') == 'ar-QA') {
+        $("#xbody_group").css("padding-left", "inherit").css("padding-right", "65px");
+        text1.setValue("قائمة وكالة الإدارة");
+        $(".groupcontent .v_label").css("text-align", "right");
+    }
+}
+
+//To fetch data from config.xml file.
+function setConfigs() {
+    var req = GetXMLObjectOperationModel.getMethodRequest();
+    cordys.setNodeText(req, ".//*[local-name()='key']", "qa/gov/ashghal/usermanagement/config.xml");
+    GetXMLObjectOperationModel.setMethodRequest(req);
+    GetXMLObjectOperationModel.reset();
+
+    groupid = cordys.getNodeText(GetXMLObjectOperationModel.getData(), ".//*[local-name()='groupPartition']");
+}
+//This method is called on change of Contact Number.
+function inp_contactno_Change(eventObject) {
+    if (!(/^-?\d*\.?\d*$/.test(inp_contactno.getValue()))) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 259, "", "");
+        inp_contactno.setValue("");
+        inp_contactno.setFocus();
+        return;
+    }
+}
+//To clear all fields and reset data.
+function btn_clear_Click(eventObject) {
+    inp_name.setValue("");
+    inp_contactno.setValue("");
+    GetDepartmentOnSearchModel.clear();
+    GetDepartmentOnSearchModel.reset();
+}
+
+//For getting input parameters for GetDepartmentOnSearchModel on request.
+function GetDepartmentOnSearchModel_OnRequest(eventObject) {
+    cordys.setNodeText(eventObject.request, ".//*[local-name()='DeptName']", inp_name.getValue());
+    cordys.setNodeText(eventObject.request, ".//*[local-name()='ContNum']", inp_contactno.getValue());
+}
