@@ -1,0 +1,1342 @@
+/* This Script is written by Yuvraj
+   It is for creating and editing agency.
+*/
+var editflag = 0;
+var msg = "";
+var option = {
+    value: "",
+    description: "---Select---"
+};
+var aroption = {
+    value: "",
+    description: "---تحديد---"
+};
+var userid = "";
+var groupid = "";
+var externalpartition = "";
+var internalpartition = "";
+var deptCd = "";
+var userflag = "";
+var usersel = "";
+var userdn = "";
+var userval = "";
+var uval = "";
+var usr_dp = "";
+var usr1_dp = "";
+var usrml_dp = "";
+var acd_dm = "";
+var profilelink = "";
+var homelink = "";
+var operation = "";
+var oldagnm = "";
+var oldmaxusr = "";
+//This method is called when the form loads
+function Form_InitDone(eventObject) {
+    text1.hide();
+    text2.hide();
+    var Dreq = CFM_DeptModel.getMethodRequest();
+    cordys.setNodeText(Dreq, ".//*[local-name()='DeptName']", "");
+    cordys.setNodeText(Dreq, ".//*[local-name()='ContNum']", "");
+    CFM_DeptModel.setMethodRequest(Dreq);
+    CFM_DeptModel.reset();
+    setMissingTranslations();
+    //Form level message
+    cordys.setNodeText(GetMsgsByFunctionAreaModel.getMethodRequest(), ".//*[local-name()='FunAreaID']", 10);
+    GetMsgsByFunctionAreaModel.reset();
+
+    //Form level security and actions
+
+    var aob = [];
+    aob.push({
+        control: btn_save,
+        value: '19'
+    });
+    var res = isAuthorized(GetAuthorizationInfoModel, GetMsgsByFunctionAreaModel, 10, 50, 51, aob);
+    if (res == "") {
+        grp_agncDtls.hide();
+        text1.hide();
+        return;
+    }
+    //Form level security End
+
+    out_agncId.hide();
+
+    inp_cndDeptEx.hide();
+
+    var dataA = application.event.data;
+    editflag = dataA.editflg;
+    setConfigs();
+    if (editflag == 1) {		
+        rad_agncTypId.disable();
+        out_agncId.setValue(dataA.Id);
+        CFM_AgcyModel.reset();
+		oldagnm = inp_agncNm.getValue();
+		oldmaxusr = inp_MaxUsr.getValue();
+        rad_agncTypId.disable();
+        if (rad_agncTypId.getValue() == 1) {
+            inp_cndDeptEx.show();
+            sel_cndDept.hide();
+            inp_cndDptMngInt.hide();
+            inp_cndDptMngEmlInt.hide();
+            inp_cndDptMng.disable();
+            inp_cndDptMngEml.disable();
+            
+
+            var aCd = cordys.getNodeText(CFM_AgcyModel.getData(), ".//*[local-name()='AgcyCdSys']");
+            acd_dm = aCd;
+
+            var req = GetOTDSGroupUsersModel.getMethodRequest();
+            cordys.setNodeText(req, ".//*[local-name()='groupId']", ("X-M2-" + aCd + "-AgencyManager"));
+            GetOTDSGroupUsersModel.setMethodRequest(req);
+            GetOTDSGroupUsersModel.reset();
+
+            usr_dp = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:name");
+            usr1_dp = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:location");
+            usrml_dp = cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']");
+            inp_cndDptMng.setValue(usr_dp);
+            inp_cndDptMngEml.setValue(usrml_dp);
+
+        } else {
+            inp_cndDeptEx.hide();
+            sel_cndDept.show();
+            inp_cndDptMng.hide();
+            inp_cndDptMngEml.hide();
+			
+			
+            var aCd = cordys.getNodeText(CFM_AgcyModel.getData(), ".//*[local-name()='AgcyCdSys']");
+            acd_dm = aCd;
+
+            var req = GetOTDSGroupUsersModel.getMethodRequest();
+            cordys.setNodeText(req, ".//*[local-name()='groupId']", ("I-M2-" + aCd + "-AgencyManager"));
+            GetOTDSGroupUsersModel.setMethodRequest(req);
+            GetOTDSGroupUsersModel.reset();
+
+            usr_dp = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:name");
+            usr1_dp = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:location");
+            usrml_dp = cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']");
+            inp_cndDptMngInt.setValue(usr_dp);
+            inp_cndDptMngEmlInt.setValue(usrml_dp);
+            usersel = usr_dp + " - " + (cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']"));
+            userdn = usr1_dp;
+            userval = usr_dp;
+        }
+
+
+
+    } else {
+        grp_agncDtls.create();
+        rad_agncstat.setValue("1");
+        rad_agncstat.disable();
+        rad_agncTypId.setValue("2");
+        //text1.show();
+        if (rad_agncTypId.getValue() == 1) {
+            inp_cndDeptEx.show();
+            sel_cndDept.hide();
+            inp_cndDptMng.show();
+            inp_cndDptMngEml.show();
+            inp_cndDptMngEmlInt.hide();
+            inp_cndDptMngInt.hide();
+        } else {
+            inp_cndDeptEx.hide();
+            sel_cndDept.show();
+            inp_cndDptMng.hide();
+            inp_cndDptMngEml.hide();
+            inp_cndDptMngEmlInt.show();
+            inp_cndDptMngInt.show();
+        }
+    }
+}
+
+//This method sets the default option for select box
+function addSelectOption() {
+    sel_cndDept.addOption(option, false, 0, false);
+    sel_cndDept.setValue("");
+}
+
+//This method is invoked on click of save button
+function btn_save_Click(eventObject) {
+    if (rad_agncTypId.getValue() == 1) {
+		
+		
+		
+        if (inp_agncSotNm.getValue() != '' && inp_agncSotNmAr.getValue() != '' && inp_EmlDom.getValue() != '' && (sel_cndDept.getValue() != '' || inp_cndDeptEx.getValue() != '')) {
+            var cndDptMng = (inp_cndDptMng.getValue()).replace(/\s+/, "");
+            // When form is Opened in edit mode
+            if (editflag == 1) {
+				
+				if (inp_agncNm.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 43, "", "10");
+                    inp_agncNm.setFocus();
+                    return false;
+                }
+                if (inp_agncNmAr.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 44, "", "10");
+                    inp_agncNmAr.setFocus();
+                    return false;
+                }
+                if (inp_agncCd.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 45, "", "10");
+                    inp_agncCd.setFocus();
+                    return false;
+                }
+                if (inp_agncSotNm.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 46, "", "10");
+                    inp_agncSotNm.setFocus();
+                    return false;
+                }
+                if (inp_agncSotNmAr.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 355, "", "10");
+                    inp_agncSotNmAr.setFocus();
+                    return false;
+                }
+
+                if (inp_cndDeptEx.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 48, "", "10");
+                    inp_cndDeptEx.setFocus();
+                    return false;
+                }
+                if (inp_cndDptMng.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 49, "", "10");
+                    inp_cndDptMng.setFocus();
+                    return false;
+                }
+
+                if (inp_EmlDom.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 232, "", "10");
+                    inp_EmlDom.setFocus();
+                    return false;
+                }
+				if (inp_MaxUsr.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 1265, "", "10");
+                    inp_MaxUsr.setFocus();
+                    return false;
+                }
+                if ((inp_agncNm.getValue() != '' || inp_agncNm.getValue() != null) && (inp_agncNm.getValue().length >= 255)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 372, "", "10");
+                    return false;
+                }
+                if ((inp_agncNmAr.getValue() != '' || inp_agncNmAr.getValue() != null) && (inp_agncNmAr.getValue().length >= 255)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 373, "", "10");
+                    return false;
+                }
+                if ((inp_agncCd.getValue() != '' || inp_agncCd.getValue() != null) && (inp_agncCd.getValue().length >= 50)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 376, "", "10");
+                    return false;
+                }
+                if ((inp_agncSotNm.getValue() != '' || inp_agncSotNm.getValue() != null) && (inp_agncSotNm.getValue().length >= 50)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 375, "", "10");
+                    return false;
+                }
+                if ((inp_agncSotNmAr.getValue() != '' || inp_agncSotNmAr.getValue() != null) && (inp_agncSotNmAr.getValue().length >= 50)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 374, "", "10");
+                    return false;
+                }
+                if ((txt_milAdd.getValue() != '' || txt_milAdd.getValue() != null) && (txt_milAdd.getValue().length >= 500)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 382, "", "10");
+                    return false;
+                }
+                if ((inp_cndDeptEx.getValue() != '' || inp_cndDeptEx.getValue() != null) && (inp_cndDeptEx.getValue().length >= 255)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 381, "", "10");
+                    return false;
+                }
+                if ((inp_MaxUsr.getValue() != '' || inp_MaxUsr.getValue() != null) && (inp_MaxUsr.getValue().length >= 5)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 385, "", "10");
+                    return false;
+                }
+				if ((inp_MaxUsr.getValue() < 1) && (inp_MaxUsr.getValue() != '' )) {
+					showMessage(GetMsgsByFunctionAreaModel, 2, 1242, "", "10");
+					inp_MaxUsr.setValue(oldmaxusr);
+					return false;
+				}
+				
+				CFM_Agcy_SrchModel.reset();
+				var SbPrdLenth = cordys.selectXMLNodes(CFM_Agcy_SrchModel.getData(), ".//*[local-name()='tuple']").length;				
+				if(SbPrdLenth >= 1 && oldagnm != inp_agncNm.getValue())
+				{
+					showMessage(GetMsgsByFunctionAreaModel, 2, 1247, "", "10");
+					return false;
+				}
+
+                function inp_cndDptMng_Change(eventObject) {
+                    if (/^[a-zA-Z0-9_-]*$/.test(inp_cndDptMng.getValue())) {
+                        return true;
+                    } else {
+                        showMessage(GetMsgsByFunctionAreaModel, 2, 384, "", "10");
+                        return false;
+                    }
+                    if ((inp_cndDptMng.getValue() != '' || inp_cndDptMng.getValue() != null) && (inp_cndDptMng.getValue().length >= 50)) {
+                        showMessage(GetMsgsByFunctionAreaModel, 2, 383, "", "10");
+                        return false;
+                    }
+                }
+
+                CFM_AgcyModel.synchronize();
+                var agncCd = cordys.getNodeText(CFM_AgcyModel.getData(), ".//*[local-name()='AgcyCdSys']");
+                acd_dm = agncCd;
+
+
+                if (!CFM_AgcyModel.soapFaultOccurred) {
+                    msg = "54";
+
+                    var req = GetOTDSGroupUsersModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='groupId']", ("X-M2-" + agncCd + "-AgencyManager"));
+                    GetOTDSGroupUsersModel.setMethodRequest(req);
+                    GetOTDSGroupUsersModel.reset();
+                    var mailID = cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']");
+                    var UName = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:name");
+                    var usrID1 = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:id");
+                    var accessLink = profilelink + usrID1;
+                    //External Modification
+                    var req = CFM_EmailMsgTmplModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='EmailMsgTmplID']", 15);
+                    CFM_EmailMsgTmplModel.setMethodRequest(req);
+                    CFM_EmailMsgTmplModel.reset();
+
+                    //For English Language
+                    var mailSub = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjEn");
+                    var mailBody = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyEn");
+                    var mailBodyParams = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyParams");
+                    var mailBodyParamsArray = new Array();
+                    mailBodyParamsArray = mailBodyParams.split("|");
+                    mailBodyParamsArray[0] = inp_agncNm.getValue();
+                    mailBodyParamsArray[1] = system.getUser().name;
+                    for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                        mailBody = mailBody.replace("{" + i + "}", mailBodyParamsArray[i]);
+                    }
+                    //For Arabic Language
+                    var mailSubAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjAr");
+                    var mailBodyAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyAr");
+                    if (mailSubAr !== undefined && mailSubAr != "") {
+                        for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                            mailBodyAr = mailBodyAr.replace("{" + i + "}", mailBodyParamsArray[i]);
+                        }
+                    }
+                    if (getParameterByName('language') == 'ar-QA') {
+                        var req = MailNotificationsModel.getMethodRequest();
+                        cordys.setNodeText(req, ".//*[local-name()='groupIDs']", "");
+                        cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                        cordys.setNodeText(req, ".//*[local-name()='mailIDs']", mailID);
+                        cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSubAr);
+                        cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBodyAr);
+                        MailNotificationsModel.setMethodRequest(req);
+                        //MailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = MailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+                        $("#fb_title").css("text-align","right").text("إنشاء وكالة");
+                        $(".groupcontent .v_label").css("text-align","right");
+                    } else {
+                        var req = MailNotificationsModel.getMethodRequest();
+                        cordys.setNodeText(req, ".//*[local-name()='groupIDs']", "");
+                        cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                        cordys.setNodeText(req, ".//*[local-name()='mailIDs']", mailID);
+                        cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSub);
+                        cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBody);
+                        MailNotificationsModel.setMethodRequest(req);
+                        //MailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = MailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+                    }
+                } else
+                    msg = "50";
+            }
+			
+            //when form is opened in create mode
+			
+            else {			
+				
+                if (inp_agncNm.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 43, "", "10");
+                    inp_agncNm.setFocus();
+                    return false;
+                }
+                if (inp_agncNmAr.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 44, "", "10");
+                    inp_agncNmAr.setFocus();
+                    return false;
+                }
+                if (inp_agncCd.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 45, "", "10");
+                    inp_agncCd.setFocus();
+                    return false;
+                }
+                if (inp_agncSotNm.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 46, "", "10");
+                    inp_agncSotNm.setFocus();
+                    return false;
+                }
+                if (inp_agncSotNmAr.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 355, "", "10");
+                    inp_agncSotNmAr.setFocus();
+                    return false;
+                }
+
+                if (inp_cndDeptEx.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 48, "", "10");
+                    inp_cndDeptEx.setFocus();
+                    return false;
+                }
+                if (inp_cndDptMng.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 49, "", "10");
+                    inp_cndDptMng.setFocus();
+                    return false;
+                }
+
+                if (inp_EmlDom.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 232, "", "10");
+                    inp_EmlDom.setFocus();
+                    return false;
+                }
+                
+                if (inp_MaxUsr.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 1265, "", "10");
+                    inp_MaxUsr.setFocus();
+                    return false;
+                }
+
+                if ((inp_agncNm.getValue() != '' || inp_agncNm.getValue() != null) && (inp_agncNm.getValue().length >= 255)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 372, "", "10");
+                    return false;
+                }
+                if ((inp_agncNmAr.getValue() != '' || inp_agncNmAr.getValue() != null) && (inp_agncNmAr.getValue().length >= 255)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 373, "", "10");
+                    return false;
+                }
+                if ((inp_agncCd.getValue() != '' || inp_agncCd.getValue() != null) && (inp_agncCd.getValue().length >= 50)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 376, "", "10");
+                    return false;
+                }
+                if ((inp_agncSotNm.getValue() != '' || inp_agncSotNm.getValue() != null) && (inp_agncSotNm.getValue().length >= 50)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 375, "", "10");
+                    return false;
+                }
+                if ((inp_agncSotNmAr.getValue() != '' || inp_agncSotNmAr.getValue() != null) && (inp_agncSotNmAr.getValue().length >= 50)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 374, "", "10");
+                    return false;
+                }
+                if ((txt_milAdd.getValue() != '' || txt_milAdd.getValue() != null) && (txt_milAdd.getValue().length >= 500)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 382, "", "10");
+                    return false;
+                }
+                if ((inp_cndDeptEx.getValue() != '' || inp_cndDeptEx.getValue() != null) && (inp_cndDeptEx.getValue().length >= 255)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 381, "", "10");
+                    return false;
+                }
+                if ((inp_MaxUsr.getValue() != '' || inp_MaxUsr.getValue() != null) && (inp_MaxUsr.getValue().length >= 5)) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 385, "", "10");
+                    return false;
+                }
+				if ((inp_MaxUsr.getValue() < 1) && (inp_MaxUsr.getValue() != 1 || inp_MaxUsr.getValue() != '')) {
+					showMessage(GetMsgsByFunctionAreaModel, 2, 1242, "", "10");
+					inp_MaxUsr.setValue(1);
+					return false;
+				}
+				CFM_Agcy_SrchModel.reset();
+				var SbPrdLenth = cordys.selectXMLNodes(CFM_Agcy_SrchModel.getData(), ".//*[local-name()='tuple']").length;
+				if(SbPrdLenth != 0)
+				{
+					var ar = [];
+					ar = cordys.selectXMLNodes(CFM_Agcy_SrchModel.getData(), ".//*[local-name()='tuple']");
+					var i = 0;
+					while(i < ar.length) {
+						if(inp_agncNm.getValue() == cordys.getNodeText(ar[i], ".//*[local-name()='AgcyEnNm']") || inp_agncCd.getValue() == cordys.getNodeText(ar[i], ".//*[local-name()='AgcyCd']") ) {
+							showMessage(GetMsgsByFunctionAreaModel, 2, 1247, "", "");
+							return false;
+						}
+						i++;
+					}
+				}
+                CFM_Agcy_SrchModel.clear();
+                function inp_cndDptMng_Change(eventObject) {
+                    if (/^[a-zA-Z0-9_-]*$/.test(inp_cndDptMng.getValue())) {
+                        return true;
+                    } else {
+                        showMessage(GetMsgsByFunctionAreaModel, 2, 384, "", "10");
+                        return false;
+                    }
+                    if ((inp_cndDptMng.getValue() != '' || inp_cndDptMng.getValue() != null) && (inp_cndDptMng.getValue().length >= 50)) {
+                        showMessage(GetMsgsByFunctionAreaModel, 2, 383, "", "10");
+                        return false;
+                    }
+                }
+
+                CFM_AgcyModel.synchronize();
+                if (!CFM_AgcyModel.soapFaultOccurred) {
+                    msg = "52";
+                    var agncCd = cordys.getNodeText(CFM_AgcyModel.getData(), ".//*[local-name()='AgcyCdSys']");
+                    acd_dm = agncCd;
+
+                    params = [];
+                    params.push("mail");
+                    params.push("oTExtraAttr2");
+
+                    paramValues = [];
+                    paramValues.push(inp_cndDptMngEml.getValue());
+                    paramValues.push("No");
+                    createUserProfile(CreateOTDSUserModel, (inp_cndDptMng.getValue()), externalpartition, params, paramValues);
+                    var crtsucmsg = cordys.getNodeText(CreateOTDSUserModel.getData(), ".//tns:result")
+                    if (crtsucmsg == "SUCCESS") {
+                        setNewUserPassword(inp_cndDptMng.getValue());
+                    } else if (crtsucmsg == "FAILED") {
+                        application.notify(cordys.getNodeText("Failed to create user. Reason :- " + CreateOTDSUserModel.getData(), ".//tns:reason"));
+                        return false;
+                    }
+
+                    var req = GetOTDSUserProfileModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='userId']", (cndDptMng));
+                    GetOTDSUserProfileModel.setMethodRequest(req);
+                    GetOTDSUserProfileModel.reset();
+                    var usrdn = cordys.getNodeText(GetOTDSUserProfileModel.getData(), ".//tns:location");
+                    var mailID = cordys.getNodeText(cordys.selectXMLNodes(GetOTDSUserProfileModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']");
+                    var UName = cordys.getNodeText(GetOTDSUserProfileModel.getData(), ".//tns:name");
+                    var usrID1 = (cndDptMng);
+
+
+                    operation = "create";
+					var reqAgcy = UpdateAgencyDetailsModel.getMethodRequest();
+                    var createAgcyTuple = cordys.cloneXMLDocument(CreateAgencyTuple.XMLDocument);
+                    cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "X-M2-" + agncCd + "-AgencyEngineer");
+                    cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+                    cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userdn']", "");
+                    cordys.appendXMLNode(cordys.selectXMLNode(createAgcyTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqAgcy, ".//*[local-name()='agencyTuples']"));
+
+                    var createAgcyTuple = cordys.cloneXMLDocument(CreateAgencyTuple.XMLDocument);
+                    cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "X-M2-" + agncCd + "-AgencyManager");
+                    cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+                    cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userdn']", usrdn);
+                    cordys.appendXMLNode(cordys.selectXMLNode(createAgcyTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqAgcy, ".//*[local-name()='agencyTuples']"));
+
+                    var createAgcyTuple = cordys.cloneXMLDocument(CreateAgencyTuple.XMLDocument);
+                    cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "X-M2-" + agncCd + "-AgencyExecutive");
+                    cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+                    cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userdn']", "");
+                    cordys.appendXMLNode(cordys.selectXMLNode(createAgcyTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqAgcy, ".//*[local-name()='agencyTuples']"));
+
+                    var createAgcyTuple = cordys.cloneXMLDocument(CreateAgencyTuple.XMLDocument);
+                    cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "X-M2-" + agncCd + "-AgencyActingManager");
+                    cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+                    cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userdn']", "");
+                    cordys.appendXMLNode(cordys.selectXMLNode(createAgcyTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqAgcy, ".//*[local-name()='agencyTuples']"));
+
+					cordys.setNodeText(reqAgcy, ".//*[local-name()='operation']", operation);
+					cordys.setNodeText(reqAgcy, ".//*[local-name()='parentgroup']", "X-M2-AgencyManager");
+					UpdateAgencyDetailsModel.setMethodRequest(reqAgcy);
+					UpdateAgencyDetailsModel.reset();
+					var crtsucmsg = cordys.getNodeText(UpdateAgencyDetailsModel.getData(), ".//tns:result");
+                   if (crtsucmsg == "SUCCESS") {
+					   msg = "52";
+				   }
+				   else {
+					   msg = "50";
+				       application.container.close();
+				   }   
+                    var accessLink = profilelink + usrID1;
+                    //Create External
+                    var req = CFM_EmailMsgTmplModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='EmailMsgTmplID']", 16);
+                    CFM_EmailMsgTmplModel.setMethodRequest(req);
+                    CFM_EmailMsgTmplModel.reset();
+
+                    //For English Language
+                    var mailSub = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjEn");
+                    var mailBody = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyEn");
+                    var mailSubParams = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjParams");
+                    var mailSubParamsArray = new Array();
+                    mailSubParamsArray = mailSubParams.split("|");
+                    mailSubParamsArray[0] = inp_agncNm.getValue();
+                    for (var i = 0; i < mailSubParamsArray.length; i++) {
+                        mailSub = mailSub.replace("{" + i + "}", mailSubParamsArray[i]);
+                    }
+                    var mailBodyParams = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyParams");
+                    var mailBodyParamsArray = new Array();
+                    mailBodyParamsArray = mailBodyParams.split("|");
+                    mailBodyParamsArray[0] = inp_agncNm.getValue();
+                    mailBodyParamsArray[1] = accessLink;
+					mailBodyParamsArray[2] = usrID1;
+					mailBodyParamsArray[3] = "P@ssw0rd";
+                    for (var i = 0; i < (mailBodyParamsArray.length); i++) {
+                        if (i == 0) {
+                            mailBody = mailBody.replace("{" + i + "}", mailBodyParamsArray[i]);
+                            mailBody = mailBody.replace("{" + i + "}", mailBodyParamsArray[i]);
+                        } else
+                            mailBody = mailBody.replace("{" + i + "}", mailBodyParamsArray[i]);
+                    }
+                    //For Arabic Language
+                    var mailSubAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjAr");
+                    var mailBodyAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyAr");
+                    if (mailSubAr !== undefined && mailSubAr != "") {
+                        for (var i = 0; i < mailSubParamsArray.length; i++) {
+                            mailSubAr = mailSubAr.replace("{" + i + "}", mailSubParamsArray[i]);
+                        }
+                        for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                            if (i == 0) {
+                                mailBodyAr = mailBodyAr.replace("{" + i + "}", mailBodyParamsArray[i]);
+                                mailBodyAr = mailBodyAr.replace("{" + i + "}", mailBodyParamsArray[i]);
+                            } else
+                                mailBodyAr = mailBodyAr.replace("{" + i + "}", mailBodyParamsArray[i]);
+                        }
+                    }
+                    if (getParameterByName('language') == 'ar-QA') {
+                        var req = MailNotificationsModel.getMethodRequest();
+                        cordys.setNodeText(req, ".//*[local-name()='groupIDs']", ("X-M2-" + agncCd + "-AgencyManager"));
+                        cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                        cordys.setNodeText(req, ".//*[local-name()='mailIDs']", "");
+                        cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSubAr);
+                        cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBodyAr);
+                        MailNotificationsModel.setMethodRequest(req);
+                       //MailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = MailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+                        $("#fb_title").css("text-align","right").text("إنشاء وكالة");
+                        $(".groupcontent .v_label").css("text-align","right");
+                    } else {
+                        var req = MailNotificationsModel.getMethodRequest();
+                        cordys.setNodeText(req, ".//*[local-name()='groupIDs']", ("X-M2-" + agncCd + "-AgencyManager"));
+                        cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                        cordys.setNodeText(req, ".//*[local-name()='mailIDs']", "");
+                        cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSub);
+                        cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBody);
+                        MailNotificationsModel.setMethodRequest(req);
+                        //MailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = MailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+                    }
+                } else {
+                    msg = "50";
+                }
+            }
+            application.container.close();
+        }
+    } else {
+					
+        var cndDptMng = (inp_cndDptMng.getValue()).replace(/\s+/, "");
+        //when the form is opened in edit mode
+        if (editflag == 1) {
+
+            if (inp_agncNm.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 43, "", "10");
+                inp_agncNm.setFocus();
+                return false;
+            }
+            if (inp_agncNmAr.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 44, "", "10");
+                inp_agncNmAr.setFocus();
+                return false;
+            }
+            if (inp_agncCd.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 45, "", "10");
+                inp_agncCd.setFocus();
+                return false;
+            }
+            if (inp_agncSotNm.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 46, "", "10");
+                inp_agncSotNm.setFocus();
+                return false;
+            }
+            if (inp_agncSotNmAr.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 355, "", "10");
+                inp_agncSotNmAr.setFocus();
+                return false;
+            }
+            if (sel_cndDept.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 47, "", "10");
+                sel_cndDept.setFocus();
+                return false;
+            }
+            if (inp_cndDptMngInt.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 344, "", "10");
+                inp_cndDptMngInt.setFocus();
+                return false;
+            }
+            if (inp_EmlDom.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 232, "", "10");
+                inp_EmlDom.setFocus();
+                return false;
+            }
+			
+			if (inp_MaxUsr.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 1265, "", "10");
+                    inp_MaxUsr.setFocus();
+                    return false;
+                }
+				
+            if ((inp_agncNm.getValue() != '' || inp_agncNm.getValue() != null) && (inp_agncNm.getValue().length >= 255)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 372, "", "10");
+                return false;
+            }
+            if ((inp_agncNmAr.getValue() != '' || inp_agncNmAr.getValue() != null) && (inp_agncNmAr.getValue().length >= 255)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 373, "", "10");
+                return false;
+            }
+            if ((inp_agncCd.getValue() != '' || inp_agncCd.getValue() != null) && (inp_agncCd.getValue().length >= 50)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 376, "", "10");
+                return false;
+            }
+            if ((inp_agncSotNm.getValue() != '' || inp_agncSotNm.getValue() != null) && (inp_agncSotNm.getValue().length >= 50)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 375, "", "10");
+                return false;
+            }
+            if ((inp_agncSotNmAr.getValue() != '' || inp_agncSotNmAr.getValue() != null) && (inp_agncSotNmAr.getValue().length >= 50)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 374, "", "10");
+                return false;
+            }
+            if ((txt_milAdd.getValue() != '' || txt_milAdd.getValue() != null) && (txt_milAdd.getValue().length >= 500)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 382, "", "10");
+                return false;
+            }
+            if ((inp_MaxUsr.getValue() != '' || inp_MaxUsr.getValue() != null) && (inp_MaxUsr.getValue().length >= 5)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 385, "", "10");
+                return false;
+            }
+			if ((inp_MaxUsr.getValue() < 1) && (inp_MaxUsr.getValue() != '' )) {
+				showMessage(GetMsgsByFunctionAreaModel, 2, 1242, "", "10");
+				inp_MaxUsr.setValue(oldmaxusr);
+				return false;
+			}
+			CFM_Agcy_SrchModel.reset();
+			var SbPrdLenth = cordys.selectXMLNodes(CFM_Agcy_SrchModel.getData(), ".//*[local-name()='tuple']").length;
+			if(SbPrdLenth >= 1 && oldagnm != inp_agncNm.getValue())
+			{
+				showMessage(GetMsgsByFunctionAreaModel, 2, 1247, "", "10");
+				return false;
+			}
+			
+            inp_cndDptMngEmlInt.hide();
+            inp_cndDptMngInt.hide();
+            CFM_AgcyModel.synchronize();
+            var agncCd = cordys.getNodeText(CFM_AgcyModel.getData(), ".//*[local-name()='AgcyCdSys']");
+            acd_dm = agncCd;
+
+            if (usr_dp != inp_cndDptMngInt.getValue()) {
+              
+				operation = "edit";
+				var reqAgcy = UpdateAgencyDetailsModel.getMethodRequest();
+                var editAgcyTuple = cordys.cloneXMLDocument(EditAgencyTuple.XMLDocument);
+                cordys.setNodeText(editAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "I-M2-" + agncCd + "-AgencyManager");
+                cordys.setNodeText(editAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userdn']", userdn);
+                cordys.setNodeText(editAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='olduserdn']", usr1_dp);
+                cordys.appendXMLNode(cordys.selectXMLNode(editAgcyTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqAgcy, ".//*[local-name()='agencyTuples']"));
+				
+				cordys.setNodeText(reqAgcy, ".//*[local-name()='operation']", operation);
+				cordys.setNodeText(reqAgcy, ".//*[local-name()='parentgroup']", "I-M2-AgencyManager");
+				UpdateAgencyDetailsModel.setMethodRequest(reqAgcy);
+				UpdateAgencyDetailsModel.reset();
+				var crtsucmsg = cordys.getNodeText(UpdateAgencyDetailsModel.getData(), ".//tns:result");
+                   if (crtsucmsg != "SUCCESS") {
+					   msg = "50";
+				       application.container.close();
+				   }
+				    
+            }
+
+            if (!CFM_AgcyModel.soapFaultOccurred) {
+                msg = "54";
+                var req = GetOTDSGroupUsersModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupId']", ("I-M2-" + agncCd + "-AgencyManager"));
+                GetOTDSGroupUsersModel.setMethodRequest(req);
+                GetOTDSGroupUsersModel.reset();
+                var mailID = cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']");
+                var UName = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:name");
+                var usrID1 = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:id");
+
+                //Internal Modification
+                var req = CFM_EmailMsgTmplModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='EmailMsgTmplID']", 17);
+                CFM_EmailMsgTmplModel.setMethodRequest(req);
+                CFM_EmailMsgTmplModel.reset();
+
+                //For English Language
+                var mailSub = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjEn");
+                var mailBody = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyEn");
+                var mailBodyParams = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyParams");
+                var mailBodyParamsArray = new Array();
+                mailBodyParamsArray = mailBodyParams.split("|");
+                mailBodyParamsArray[0] = inp_agncNm.getValue();
+                mailBodyParamsArray[1] = system.getUser().name;
+                for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                    mailBody = mailBody.replace("{" + i + "}", mailBodyParamsArray[i]);
+                }
+                //For Arabic Language
+                var mailSubAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjAr");
+                var mailBodyAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyAr");
+                if (mailSubAr !== undefined && mailSubAr != "") {
+                    for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                        mailBodyAr = mailBodyAr.replace("{" + i + "}", mailBodyParamsArray[i]);
+                    }
+                }
+                if (getParameterByName('language') == 'ar-QA') {
+                    var req = MailNotificationsModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='groupIDs']", ("I-M2-" + agncCd + "-AgencyManager"));
+                    cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='mailIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSubAr);
+                    cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBodyAr);
+                    MailNotificationsModel.setMethodRequest(req);
+                    //MailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = MailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+                    $("#fb_title").css("text-align","right").text("إنشاء وكالة");
+                    $(".groupcontent .v_label").css("text-align","right");
+                } else {
+                    var req = MailNotificationsModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='groupIDs']", ("I-M2-" + agncCd + "-AgencyManager"));
+                    cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='mailIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSub);
+                    cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBody);
+                    MailNotificationsModel.setMethodRequest(req);
+                    //MailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = MailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+                }
+
+            } else
+                msg = "50";
+        }
+        //when the form is opened in create mode
+        else {
+
+            if (inp_agncNm.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 43, "", "10");
+                inp_agncNm.setFocus();
+                return false;
+            }
+            if (inp_agncNmAr.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 44, "", "10");
+                inp_agncNmAr.setFocus();
+                return false;
+            }
+            if (inp_agncCd.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 45, "", "10");
+                inp_agncCd.setFocus();
+                return false;
+            }
+            if (inp_agncSotNm.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 46, "", "10");
+                inp_agncSotNm.setFocus();
+                return false;
+            }
+            if (inp_agncSotNmAr.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 355, "", "10");
+                inp_agncSotNmAr.setFocus();
+                return false;
+            }
+            if (sel_cndDept.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 47, "", "10");
+                sel_cndDept.setFocus();
+                return false;
+            }
+            if (inp_cndDptMngInt.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 344, "", "10");
+                inp_cndDptMngInt.setFocus();
+                return false;
+            }
+            if (inp_EmlDom.getValue() == "") {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 232, "", "10");
+                inp_EmlDom.setFocus();
+                return false;
+            }
+			if (inp_MaxUsr.getValue() == "") {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 1265, "", "10");
+                    inp_MaxUsr.setFocus();
+                    return false;
+                }
+				
+            if ((inp_agncNm.getValue() != '' || inp_agncNm.getValue() != null) && (inp_agncNm.getValue().length >= 255)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 372, "", "10");
+                return false;
+            }
+            if ((inp_agncNmAr.getValue() != '' || inp_agncNmAr.getValue() != null) && (inp_agncNmAr.getValue().length >= 255)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 373, "", "10");
+                return false;
+            }
+            if ((inp_agncCd.getValue() != '' || inp_agncCd.getValue() != null) && (inp_agncCd.getValue().length >= 50)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 376, "", "10");
+                return false;
+            }
+            if ((inp_agncSotNm.getValue() != '' || inp_agncSotNm.getValue() != null) && (inp_agncSotNm.getValue().length >= 50)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 375, "", "10");
+                return false;
+            }
+            if ((inp_agncSotNmAr.getValue() != '' || inp_agncSotNmAr.getValue() != null) && (inp_agncSotNmAr.getValue().length >= 50)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 374, "", "10");
+                return false;
+            }
+            if ((txt_milAdd.getValue() != '' || txt_milAdd.getValue() != null) && (txt_milAdd.getValue().length >= 500)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 382, "", "10");
+                return false;
+            }
+            if ((inp_MaxUsr.getValue() != '' || inp_MaxUsr.getValue() != null) && (inp_MaxUsr.getValue().length >= 5)) {
+                showMessage(GetMsgsByFunctionAreaModel, 2, 385, "", "10");
+                return false;
+            }
+			if ((inp_MaxUsr.getValue() < 1) && (inp_MaxUsr.getValue() != '' || inp_MaxUsr.getValue() != 1 )) {
+				showMessage(GetMsgsByFunctionAreaModel, 2, 1242, "", "10");
+				inp_MaxUsr.setValue(1);
+				return false;
+			}
+			
+			CFM_Agcy_SrchModel.reset();
+			var SbPrdLenth = cordys.selectXMLNodes(CFM_Agcy_SrchModel.getData(), ".//*[local-name()='tuple']").length;
+			if(SbPrdLenth != 0)
+			{
+				var ar = [];
+				ar = cordys.selectXMLNodes(CFM_Agcy_SrchModel.getData(), ".//*[local-name()='tuple']");
+				var i = 0;
+				while(i < ar.length) {
+					if(inp_agncNm.getValue() == cordys.getNodeText(ar[i], ".//*[local-name()='AgcyEnNm']") || inp_agncCd.getValue() == cordys.getNodeText(ar[i], ".//*[local-name()='AgcyCd']") ) {
+						showMessage(GetMsgsByFunctionAreaModel, 2, 1247, "", "");
+						return false;
+					}
+					i++;
+				}
+			}
+            CFM_Agcy_SrchModel.clear();
+            CFM_AgcyModel.synchronize();
+            var agncCd = cordys.getNodeText(CFM_AgcyModel.getData(), ".//*[local-name()='AgcyCdSys']");
+            acd_dm = agncCd;
+
+            if (!CFM_AgcyModel.soapFaultOccurred) {
+                msg = "52";
+                
+				
+                operation = "create";
+				var reqAgcy = UpdateAgencyDetailsModel.getMethodRequest();
+                var createAgcyTuple = cordys.cloneXMLDocument(CreateAgencyTuple.XMLDocument);
+                cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "I-M2-" + agncCd + "-AgencyEngineer");
+                cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+                cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userdn']", "");
+                cordys.appendXMLNode(cordys.selectXMLNode(createAgcyTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqAgcy, ".//*[local-name()='agencyTuples']"));
+
+                var createAgcyTuple = cordys.cloneXMLDocument(CreateAgencyTuple.XMLDocument);
+                cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "I-M2-" + agncCd + "-AgencyManager");
+                cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+                cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userdn']", userdn);
+                cordys.appendXMLNode(cordys.selectXMLNode(createAgcyTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqAgcy, ".//*[local-name()='agencyTuples']"));
+
+                var createAgcyTuple = cordys.cloneXMLDocument(CreateAgencyTuple.XMLDocument);
+                cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "I-M2-" + agncCd + "-AgencyExecutive");
+                cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+                cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userdn']", "");
+                cordys.appendXMLNode(cordys.selectXMLNode(createAgcyTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqAgcy, ".//*[local-name()='agencyTuples']"));
+
+                var createAgcyTuple = cordys.cloneXMLDocument(CreateAgencyTuple.XMLDocument);
+                cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='groupId']", "I-M2-" + agncCd + "-AgencyActingManager");
+                cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userPartitionId']", groupid);
+                cordys.setNodeText(createAgcyTuple, ".//*[local-name()='tuple']/*[local-name()='userdn']", "");
+                cordys.appendXMLNode(cordys.selectXMLNode(createAgcyTuple, ".//*[local-name()='tuple']"), cordys.selectXMLNode(reqAgcy, ".//*[local-name()='agencyTuples']"));
+				
+				cordys.setNodeText(reqAgcy, ".//*[local-name()='operation']", operation);
+				cordys.setNodeText(reqAgcy, ".//*[local-name()='parentgroup']", "I-M2-AgencyManager");
+				UpdateAgencyDetailsModel.setMethodRequest(reqAgcy);
+				UpdateAgencyDetailsModel.reset();
+				var crtsucmsg = cordys.getNodeText(UpdateAgencyDetailsModel.getData(), ".//tns:result");
+                   if (crtsucmsg == "SUCCESS") {
+					   msg = "52";
+				   }
+				   else {
+					   msg = "50";
+				       application.container.close();
+				   }   
+
+
+                var req = GetOTDSGroupUsersModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='groupId']", ("I-M2-" + agncCd + "-AgencyManager"));
+                GetOTDSGroupUsersModel.setMethodRequest(req);
+                GetOTDSGroupUsersModel.reset();
+                var mailID = cordys.getNodeText(cordys.selectXMLNodes(GetOTDSGroupUsersModel.getData(), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']");
+                var UName = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:name");
+                var usrID1 = cordys.getNodeText(GetOTDSGroupUsersModel.getData(), ".//tns:id");
+                var accessLink = homelink;
+                var req = CFM_EmailMsgTmplModel.getMethodRequest();
+                cordys.setNodeText(req, ".//*[local-name()='EmailMsgTmplID']", 14);
+                CFM_EmailMsgTmplModel.setMethodRequest(req);
+                CFM_EmailMsgTmplModel.reset();
+
+                //For English Language
+                var mailSub = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjEn");
+                var mailBody = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyEn");
+                var mailSubParams = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjParams");
+                var mailSubParamsArray = new Array();
+                mailSubParamsArray = mailSubParams.split("|");
+                mailSubParamsArray[0] = inp_agncNm.getValue();
+                for (var i = 0; i < mailSubParamsArray.length; i++) {
+                    mailSub = mailSub.replace("{" + i + "}", mailSubParamsArray[i]);
+                }
+                var mailBodyParams = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyParams");
+                var mailBodyParamsArray = new Array();
+                mailBodyParamsArray = mailBodyParams.split("|");
+                mailBodyParamsArray[0] = inp_agncNm.getValue();
+                mailBodyParamsArray[1] = accessLink;
+                for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                    if (i == 0) {
+                        mailBody = mailBody.replace("{" + i + "}", mailBodyParamsArray[i]);
+                        mailBody = mailBody.replace("{" + i + "}", mailBodyParamsArray[i]);
+                    } else
+                        mailBody = mailBody.replace("{" + i + "}", mailBodyParamsArray[i]);
+                }
+                //For Arabic Language
+                var mailSubAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:SubjAr");
+                var mailBodyAr = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//tns:BodyAr");
+                if (mailSubAr !== undefined && mailSubAr != "") {
+                    for (var i = 0; i < mailSubParamsArray.length; i++) {
+                        mailSubAr = mailSubAr.replace("{" + i + "}", mailSubParamsArray[i]);
+                    }
+                    for (var i = 0; i < mailBodyParamsArray.length; i++) {
+                        if (i == 0) {
+                            mailBodyAr = mailBodyAr.replace("{" + i + "}", mailBodyParamsArray[i]);
+                            mailBodyAr = mailBodyAr.replace("{" + i + "}", mailBodyParamsArray[i]);
+                        } else
+                            mailBodyAr = mailBodyAr.replace("{" + i + "}", mailBodyParamsArray[i]);
+                    }
+                }
+                //Create Internal
+                if (getParameterByName('language') == 'ar-QA') {
+                    var req = MailNotificationsModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='groupIDs']", ("I-M2-" + agncCd + "-AgencyManager"));
+                    cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='mailIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSubAr);
+                    cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBodyAr);
+                    MailNotificationsModel.setMethodRequest(req);
+                    //MailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = MailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+                    $("#fb_title").css("text-align","right").text("إنشاء وكالة");
+                    $(".groupcontent .v_label").css("text-align","right");
+                } else {
+                    var req = MailNotificationsModel.getMethodRequest();
+                    cordys.setNodeText(req, ".//*[local-name()='groupIDs']", ("I-M2-" + agncCd + "-AgencyManager"));
+                    cordys.setNodeText(req, ".//*[local-name()='userIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='mailIDs']", "");
+                    cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSub);
+                    cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailBody);
+                    MailNotificationsModel.setMethodRequest(req);
+                    //MailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = MailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+                }
+
+            } else
+                msg = "50";
+        }
+        application.container.close();
+    }
+
+}
+
+//This method is called when cancel button is clicked
+function btn_cncl_Click(eventObject) {
+    application.container.close();
+}
+
+//This method gives data to the parent form
+function dialogReturnValue() {
+    var data = new Object();
+    data.msg = msg;
+    return data;
+}
+
+//This method is called to get the request data for CFM_AgcyModel
+function CFM_AgcyModel_OnRequest(eventObject) {
+    cordys.setNodeText(eventObject.request, ".//*[local-name()='AgcyID']", out_agncId.getValue());
+}
+
+//This method is called when radio selection is changed for agency type
+function rad_agncTypId_Change(eventObject) {
+    if (rad_agncTypId.getValue() == 1) {
+        inp_cndDeptEx.show();
+        sel_cndDept.hide();
+        inp_cndDptMng.show();
+        inp_cndDptMngEml.show();
+        inp_cndDptMngEmlInt.hide();
+        inp_cndDptMngInt.hide();
+    } else {
+        inp_cndDeptEx.hide();
+        sel_cndDept.show();
+        inp_cndDptMng.hide();
+        inp_cndDptMngEml.hide();
+        inp_cndDptMngEmlInt.show();
+        inp_cndDptMngInt.show();
+    }
+}
+
+//This method is called to validate inp_cndDptMngEml
+function inp_cndDptMngEml_Validate(eventObject) {
+    if (eventObject.srcElement.getValue() != "") {
+        if (/^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/.test(inp_cndDptMngEml.getValue())) {
+            return true;
+        } else {
+            showMessage(GetMsgsByFunctionAreaModel, 3, 280, "", "10");
+            eventObject.srcElement.setValue("");
+            eventObject.srcElement.setFocus();
+        }
+    }
+}
+
+//This method is called for setting missing arabic translation
+function setMissingTranslations() {
+    if (getParameterByName('language') == 'ar-QA') {
+        text1.setValue("إنشاء وكالة");
+        sel_cndDept.addOption(aroption, false, 0, false);
+        sel_cndDept.setValue("");
+         $("#fb_title").css("text-align","right").text("إنشاء وكالة");
+         $(".groupcontent .v_label").css("text-align","right");
+         parent.document.getElementById("fb_title").style.textAlign = "right";
+
+    } else {
+        addSelectOption();
+    }
+}
+
+//This method fetches data from config.xml file
+function setConfigs() {
+    var req = GetXMLObjectOperationModel.getMethodRequest();
+    cordys.setNodeText(req, ".//*[local-name()='key']", "qa/gov/ashghal/usermanagement/config.xml");
+    GetXMLObjectOperationModel.setMethodRequest(req);
+    GetXMLObjectOperationModel.reset();
+    groupid = cordys.getNodeText(GetXMLObjectOperationModel.getData(), ".//*[local-name()='groupPartition']");
+    externalpartition = cordys.getNodeText(GetXMLObjectOperationModel.getData(), ".//*[local-name()='externalPartition']");
+    internalpartition = cordys.getNodeText(GetXMLObjectOperationModel.getData(), ".//*[local-name()='internalPartition']");
+    profilelink = cordys.getNodeText(GetXMLObjectOperationModel.getData(), ".//*[local-name()='profileLink']");
+    homelink = cordys.getNodeText(GetXMLObjectOperationModel.getData(), ".//*[local-name()='loginLink']");
+}
+
+//This method is called when the form is initialized
+function Form_Init(eventObject) {
+    text1.hide();
+    text2.hide();
+}
+
+//This method is called before opening the zoom box
+function inp_cndDptMngInt_BeforeZoom(eventObject) {
+    cordys.preventDefault(eventObject);
+    var data = new Object();
+    data.from = "People";
+    data.function_area = 38;
+    data.service_error = 183;
+    data.service_auth_error = 184;
+    data.notifi_min_chars = 180;
+    data.data_unavailable = 181;
+    data.userflag = 1;
+    data.msg = msg;
+    data.editflag = editflag;
+    data.grp = ("I-M2-" + acd_dm + "-AgencyManager");
+    data.usersel = usersel;
+    data.userdn = userdn;
+    data.userval = userval;
+    application.showDialog(GetAgcyMngrUname.XMLDocument.documentElement, data, null, callBckHandler);
+}
+
+//This method recieves data from the child form
+function callBckHandler(dialogReturnValue) {
+    userdn = dialogReturnValue.userdn;
+    uval = userdn;
+    inp_cndDptMngInt.setValue(dialogReturnValue.userval);
+    userval = dialogReturnValue.userval;
+    usersel = dialogReturnValue.usersel;
+    inp_cndDptMngEmlInt.setValue(dialogReturnValue.usersel.split("- ")[1]);
+}
+
+//This method is called to validate inp_cndDptMngInt
+function inp_cndDptMngInt_Validate(eventObject) {
+    if (eventObject.srcElement.getValue() != "") {
+        var n = uval.indexOf(";");
+        if (n == -1) {
+            return true;
+        } else {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 340, "", "7");
+            eventObject.srcElement.setValue("");
+            eventObject.srcElement.setFocus();
+        }
+    } else {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 344, "", "10");
+        eventObject.srcElement.setValue("");
+        eventObject.srcElement.setFocus();
+    }
+}
+
+//This method is called to validate inp_EmlDom
+function inp_EmlDom_Validate(eventObject) {
+    var DomList = inp_EmlDom.getValue();
+    if (DomList != "") {
+        if (/^[a-zA-Z0-9@.;-]*$/.test(DomList)) {
+            var n = DomList.indexOf(";");
+            if (n == -1) {
+				var e = DomList.indexOf("@");
+				if(e != -1) {
+					if(DomList.split("@")[0] != "") {
+						showMessage(GetMsgsByFunctionAreaModel, 2, 364, "", "10");
+						eventObject.srcElement.setValue("");
+						eventObject.srcElement.setFocus();
+					}
+				}
+                var m = DomList.indexOf(".");
+                if (m == -1) {
+                    showMessage(GetMsgsByFunctionAreaModel, 2, 364, "", "10");
+                    eventObject.srcElement.setValue("");
+                    eventObject.srcElement.setFocus();
+                } else {
+                    var is = DomList.split(".");
+                    if (is[1].length > 3) {
+                        showMessage(GetMsgsByFunctionAreaModel, 2, 364, "", "10");
+                        eventObject.srcElement.setValue("");
+                        eventObject.srcElement.setFocus();
+                    }
+                }
+            } else {
+                var ss = DomList.split(";");
+                for (var i in ss) {
+					var e = ss[i].indexOf("@");
+					if(e != -1) {
+						if(ss[i].split("@")[0] != "") {
+							showMessage(GetMsgsByFunctionAreaModel, 2, 364, "", "10");
+							eventObject.srcElement.setValue("");
+							eventObject.srcElement.setFocus();
+						}
+					}
+                    var m = ss[i].indexOf(".");
+                    if (m == -1) {
+                        showMessage(GetMsgsByFunctionAreaModel, 2, 364, "", "10");
+                        eventObject.srcElement.setValue("");
+                        eventObject.srcElement.setFocus();
+                    } else {
+                        var is = ss[i].split(".");
+                        if (is[1].length > 3) {
+                            showMessage(GetMsgsByFunctionAreaModel, 2, 364, "", "10");
+                            eventObject.srcElement.setValue("");
+                            eventObject.srcElement.setFocus();
+                        }
+                    }
+
+                }
+            }
+        } else {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 364, "", "10");
+            eventObject.srcElement.setValue("");
+            eventObject.srcElement.setFocus();
+        }
+    }
+}
+
+//This method is called on change of inp_cndDeptEx
+function inp_cndDeptEx_Change(eventObject) {
+    if ((inp_cndDeptEx.getValue() != '' || inp_cndDeptEx.getValue() != null) && (inp_cndDeptEx.getValue().length >= 255)) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 381, "", "10");
+        return false;
+    }
+}
+
+//This method is called on change of txt_milAdd
+function txt_milAdd_Change(eventObject) {
+    if ((txt_milAdd.getValue() != '' || txt_milAdd.getValue() != null) && (txt_milAdd.getValue().length >= 500)) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 382, "", "10");
+        return false;
+    }
+}
+
+//This method is called on change of inp_agncNm
+function inp_agncNm_Change(eventObject) {
+	if(/^\s*$/.test(inp_agncNm.getValue())){
+		inp_agncNm.setValue("");
+	}
+    if ((inp_agncNm.getValue() != '' || inp_agncNm.getValue() != null) && (inp_agncNm.getValue().length >= 255)) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 372, "", "10");
+        return false;
+    }
+}
+
+//This method is called on change of inp_agncNmAr
+function inp_agncNmAr_Change(eventObject) {
+	if(/^\s*$/.test(inp_agncNmAr.getValue())){
+		inp_agncNmAr.setValue("");
+	}
+    if ((inp_agncNmAr.getValue() != '' || inp_agncNmAr.getValue() != null) && (inp_agncNmAr.getValue().length >= 255)) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 373, "", "10");
+        return false;
+    }
+}
+
+//This method is called on change of inp_agncSotNm
+function inp_agncSotNm_Change(eventObject) {
+	if(/^\s*$/.test(inp_agncSotNm.getValue())){
+		inp_agncSotNm.setValue("");
+	}
+    if ((inp_agncSotNm.getValue() != '' || inp_agncSotNm.getValue() != null) && (inp_agncSotNm.getValue().length >= 50)) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 375, "", "10");
+        return false;
+    }
+}
+
+//This method is called on change of inp_agncSotNmAr
+function inp_agncSotNmAr_Change(eventObject) {
+	if(/^\s*$/.test(inp_agncSotNmAr.getValue())){
+		inp_agncSotNmAr.setValue("");
+	}
+    if ((inp_agncSotNmAr.getValue() != '' || inp_agncSotNmAr.getValue() != null) && (inp_agncSotNmAr.getValue().length >= 50)) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 374, "", "10");
+        return false;
+    }
+}
+
+//This method is called on change of inp_cndDptMng
+function inp_cndDptMng_Change(eventObject) {
+    if (/^[a-zA-Z0-9_-]*$/.test(inp_cndDptMng.getValue())) {
+        return true;
+    } else {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 384, "", "10");
+        return false;
+    }
+    if ((inp_cndDptMng.getValue() != '' || inp_cndDptMng.getValue() != null) && (inp_cndDptMng.getValue().length >= 50)) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 383, "", "10");
+        return false;
+    }
+}
+
+//This method is called on change of inp_agncCd
+function inp_agncCd_Change(eventObject)
+{
+    if(/^\s*$/.test(inp_agncCd.getValue())){
+		inp_agncCd.setValue("");
+	}
+}
+
+//This method is called on change of inp_MaxUsr
+function inp_MaxUsr_Change(eventObject) {          
+	if ((inp_MaxUsr.getValue() < 1) && (inp_MaxUsr.getValue() != '' )) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 1242, "", "10");
+		//inp_MaxUsr.setValue("");
+        return false;
+    }
+    if ((inp_MaxUsr.getValue() != '' || inp_MaxUsr.getValue() != null) && (inp_MaxUsr.getValue().length > 5)) {
+        showMessage(GetMsgsByFunctionAreaModel, 2, 385, "", "10");
+        return false;
+    }
+}
+
+//This method is called to reset new password for the created user
+function setNewUserPassword(strUserID) {
+    var req = ResetOTDSUserPasswordModel.getMethodRequest();
+    cordys.setNodeText(req, ".//*[local-name()='userId']", strUserID);
+    cordys.setNodeText(req, ".//*[local-name()='oldPassword']", "");
+    cordys.setNodeText(req, ".//*[local-name()='newPassword']", "P@ssw0rd");
+    ResetOTDSUserPasswordModel.reset();
+}
+
+//This method is called to get the request data for CFM_AgcyModel
+function CFM_Agcy_SrchModel_OnRequest(eventObject)
+{
+    cordys.setNodeText( CFM_Agcy_SrchModel.getMethodRequest() , ".//*[local-name()='AgcyName']", inp_agncNm.getValue());
+    cordys.setNodeText(CFM_Agcy_SrchModel.getMethodRequest(), ".//*[local-name()='AgcyAra']", "");
+    cordys.setNodeText(CFM_Agcy_SrchModel.getMethodRequest(), ".//*[local-name()='AgcyCode']", "");
+    cordys.setNodeText(CFM_Agcy_SrchModel.getMethodRequest(), ".//*[local-name()='ConcDept']", "");
+    cordys.setNodeText(CFM_Agcy_SrchModel.getMethodRequest(), ".//*[local-name()='Email']", "");
+    cordys.setNodeText(CFM_Agcy_SrchModel.getMethodRequest(), ".//*[local-name()='Status']", "");
+}
