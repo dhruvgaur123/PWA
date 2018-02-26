@@ -1,0 +1,755 @@
+var added = [];
+var removed = [];
+var partitions = [];
+var function_area;
+var service_error;
+var service_auth_error;
+var notify_min_chars;
+var data_unavailable;
+var succ_message;
+var message_type_inform = 1;
+var message_type_notify = 2;
+var message_type_error = 3;
+var action_search;
+var action_assign;
+var group_partition = "";
+var group_name = "";
+var groupid = "";
+var userflag = "";
+var userval = "";
+var usersel = "";
+var userdn = "";
+var noaccessusers = "";
+var checkusrs = "";
+var alrtusrs = "";
+var callback = false;
+var editflag = "";
+var oruserval = "";
+var orusersel = "";
+var oruserdn = "";
+var mail_id = "";
+var agcytype = "";
+var agcysel = "";
+var agcygrp = "";
+var msg="";
+var okflg="";
+var agcycode = "";
+var agcyoption = {
+    value: "",
+    description: "---Select Agency---"
+};
+var aragcyoption = {
+    value: "",
+    description: "---حدد وكالة---"
+};
+
+
+// Common application data for assigning users
+function setGlobalData() {
+    group_name = application.event.data.group_name;
+    function_area = application.event.data.function_area;
+    service_error = application.event.data.service_error;
+    service_auth_error = application.event.data.service_auth_error;
+    notify_min_chars = application.event.data.notifi_min_chars;
+    data_unavailable = application.event.data.data_unavailable;
+    succ_message = application.event.data.succ_msg;
+    action_search = application.event.data.action_search;
+    action_assign = application.event.data.action_assign;
+    mail_id = application.event.data.mail_id;
+    text1.setValue(application.event.data.textvalue_caption);
+    lstUsers.setLabel(application.event.data.first_listbox_caption);
+    lstExecutiveUsers.setLabel(application.event.data.second_listbox_caption);
+    grpUsers.setLabel(application.event.data.groupbox_caption);
+}
+// Agency application data for assigning users
+function setAgencyData() {    
+    function_area = application.event.data.function_area;
+    service_error = application.event.data.service_error;
+    service_auth_error = application.event.data.service_auth_error;
+    notify_min_chars = application.event.data.notifi_min_chars;
+    data_unavailable = application.event.data.data_unavailable;
+    succ_message = application.event.data.succ_msg;
+    action_search = application.event.data.action_search;
+    action_assign = application.event.data.action_assign;
+    mail_id = application.event.data.mail_id;
+    text1.setValue(application.event.data.textvalue_caption);
+    agcygrp = application.event.data.agcygrp;
+    userflag = application.event.data.userflag;
+    msg = application.event.data.msg;
+    lstUsers.setLabel(application.event.data.first_listbox_caption);
+    lstExecutiveUsers.setLabel(application.event.data.second_listbox_caption);
+    grpUsers.setLabel(application.event.data.groupbox_caption);
+}
+// People application data for selected users
+function setPeoplePicker() {
+    var data = application.event.data;
+    function_area = application.event.data.function_area;
+    service_error = application.event.data.service_error;
+    service_auth_error = application.event.data.service_auth_error;
+    notify_min_chars = application.event.data.notifi_min_chars;
+    data_unavailable = application.event.data.data_unavailable;
+    userflag = data.userflag;
+    editflag = data.editflag;
+    groupid = data.grp;
+    usersel = data.usersel;
+    userval = data.userval;
+    userdn = data.userdn;
+    orusersel = data.usersel;
+    oruserval = data.userval;
+    oruserdn = data.userdn;
+}
+//Form Initialization
+function Form_InitDone(eventObject) {
+
+     var mq = window.matchMedia("(min-width: 767px)");
+if (mq.matches) {
+    //window width is at least 550px
+   //alert("syed");
+            
+
+} else {
+    // window width is less than 767px
+  //alert("syed2");
+            document.getElementById("imbMove").src = "qa/gov/ashghal/caprmsglobal/img/add-down.png";
+            document.getElementById("imgMoveAll").src = "qa/gov/ashghal/caprmsglobal/img/add-all-down.png";
+            document.getElementById("imgRemove").src = "qa/gov/ashghal/caprmsglobal/img/remove-down.png";
+            document.getElementById("imgRemoveAll").src = "qa/gov/ashghal/caprmsglobal/img/remove-all-down.png";
+}
+
+    input1.hide();
+    if (application.event.data.from == "Common") {
+        setGlobalData();
+        setMissingTranslations();
+        btn_cancel.hide();
+        btn_ok.hide();
+        sel_agcy.hide();
+        cordys.setNodeText(GetMsgsByFunctionAreaModel.getMethodRequest(), ".//*[local-name()='FunAreaID']", function_area);
+        GetMsgsByFunctionAreaModel.reset();
+        //Form level security and actions
+        var aob = [{
+            control: btn_search,
+            value: action_search
+        }, {
+            control: btnAssign,
+            value: action_assign
+        }];
+
+        var res = isAuthorized(GetAuthorizationInfoModel, GetMsgsByFunctionAreaModel, function_area, service_error, service_auth_error, aob);
+        if (res == "") {
+            group3.hide();
+            input1.hide();
+            return;
+        }
+        setConfigs();
+        groupid = group_name + "@" + group_partition;
+        cordys.setNodeText(GetOTDSGroupUsersModel.getMethodRequest(), ".//*[local-name()='groupId']", groupid);
+        GetOTDSGroupUsersModel.reset();
+        fillAllPartitionUsers();
+    }
+    if (application.event.data.from == "Agency") {
+        setAgencyData();             
+        btn_cancel.hide();
+        btn_ok.hide();
+        cordys.setNodeText(GetMsgsByFunctionAreaModel.getMethodRequest(), ".//*[local-name()='FunAreaID']", function_area);
+        GetMsgsByFunctionAreaModel.reset();
+        //Form level security and actions
+        var aob = [{
+            control: btn_search,
+            value: action_search
+        }, {
+            control: btnAssign,
+            value: action_assign
+        }];
+
+        var res = isAuthorized(GetAuthorizationInfoModel, GetMsgsByFunctionAreaModel, function_area, service_error, service_auth_error, aob);
+        if (res == "") {
+            group3.hide();
+            input1.hide();
+            return;
+        }
+        setConfigs();
+        inp_username.hide();
+        btn_search.hide();
+        btn_clear.hide();
+        input1.hide();
+        if(agcygrp != ""){
+            sel_agcy.hide();
+            agencyfilldata();           
+        }
+        else{
+        GetAgencyCode();
+        cordys.setNodeText(GetAgenciesByAgcyCodesModel.getMethodRequest(), ".//*[local-name()='AgencyID']", agcycode);
+        GetAgenciesByAgcyCodesModel.reset();
+        }  
+        setMissingTranslations();
+        
+    }
+    if (application.event.data.from == "People") {
+        setPeoplePicker();
+        if (getParameterByName('language') == 'ar-QA') {
+            $("#xbody_group").css("padding-left", "inherit").css("padding-right", "65px");
+            $(".people_right .v_label").css("text-align", "right");
+            $(".people_left .v_label").css("text-align", "right");
+            $(".people_right").addClass("people_right_ar");
+            $(".people_left").addClass("people_left_ar");
+            $(".boxnavigator").addClass("boxnavigator2");
+            parent.document.getElementById("fb_title").style.textAlign = "right";
+            document.getElementById("imbMove").src = "qa/gov/ashghal/caprmsglobal/img/remove.png";
+            document.getElementById("imgMoveAll").src = "qa/gov/ashghal/caprmsglobal/img/remove-all.png";
+            document.getElementById("imgRemove").src = "qa/gov/ashghal/caprmsglobal/img/add.png";
+            document.getElementById("imgRemoveAll").src = "qa/gov/ashghal/caprmsglobal/img/add-all.png";
+        }
+        text1.hide();
+        btnAssign.hide();
+        btncancel.hide();
+        sel_agcy.hide();
+        cordys.setNodeText(GetMsgsByFunctionAreaModel.getMethodRequest(), ".//*[local-name()='FunAreaID']", function_area);
+        GetMsgsByFunctionAreaModel.reset();
+        setConfigs();
+        //Form level security and actions
+        var aob = [];
+        aob.push({
+            control: btn_search,
+            value: '18'
+        });
+        aob.push({
+            control: btn_ok,
+            value: '32'
+        });
+
+        var res = isAuthorized(GetAuthorizationInfoModel, GetMsgsByFunctionAreaModel, function_area, service_error, service_auth_error, aob);
+        if (res == "") {
+            group3.hide();
+            input1.hide();
+            return;
+        }
+        if (usersel != "" && userdn != "") {
+            var count = usersel.split("\n").length;
+            if (count == 1) {
+                lstExecutiveUsers.addOptions([{
+                    value: userdn,
+                    description: usersel
+                }]);
+            } else {
+                for (i = 0; i < count; i++) {
+                    lstExecutiveUsers.addOptions([{
+                        value: userdn.split(";")[i],
+                        description: usersel.split("\n")[i]
+                    }]);
+                }
+            }
+        }
+        if (userflag == "1") {
+            imgMoveAll.hide();
+            imgRemoveAll.hide();
+            lstUsers.multipleSelect = false;
+        }
+        if (editflag == "1" && groupid != "") {
+            cordys.setNodeText(GetOTDSGroupUsersModel.getMethodRequest(), ".//*[local-name()='groupId']", groupid);
+            GetOTDSGroupUsersModel.reset();
+        }
+        fillAllPartitionUsers();
+    }
+}
+
+function imbMove_Click(eventObject) {
+    addItems(lstUsers.getSelectedOptions());
+    lstExecutiveUsers.addOptions(lstUsers.getSelectedOptions());
+    lstUsers.removeOptions(lstUsers.getSelectedOptions());
+    lstExecutiveUsers.removeDuplicates(lstUsers.getSelectedOptions());	
+}
+
+function imgMoveAll_Click(eventObject) {
+    addItems(lstUsers.getAllOptions());
+    lstExecutiveUsers.addOptions(lstUsers.getAllOptions());
+    lstUsers.removeOptions(lstUsers.getAllOptions());
+    lstExecutiveUsers.removeDuplicates(lstExecutiveUsers.getAllOptions());  
+}
+
+function imgRemove_Click(eventObject) {
+    removeItems(lstExecutiveUsers.getSelectedOptions());
+    lstUsers.addOptions(lstExecutiveUsers.getSelectedOptions());
+    lstExecutiveUsers.removeOptions(lstExecutiveUsers.getSelectedOptions());   
+}
+
+function imgRemoveAll_Click(eventObject) {
+    removeItems(lstExecutiveUsers.getAllOptions());
+    lstUsers.addOptions(lstExecutiveUsers.getAllOptions());
+    lstExecutiveUsers.removeOptions(lstExecutiveUsers.getAllOptions());    
+}
+//This method is called for Assign users to the respective groups
+function btnAssign_Click(eventObject) {
+    if(agcygrp != ""){  
+    var newTuple = lstExecutiveUsers.getAllOptions();
+    if(userflag == "1"){  
+     if(newTuple.length == 0){
+        showMessage(GetMsgsByFunctionAreaModel,2,260,"","");
+        return false;}
+    } 
+    if(newTuple.length>1){
+        showMessage(GetMsgsByFunctionAreaModel,2,1237,"","");
+        return false;}
+    }
+    accessrole();
+    if (callback) {
+        assignUserToGroup();
+        removeUserFromGroup();
+        sendNotifications();
+        added = [];
+        removed = [];
+        if(agcygrp != ""){  
+        okflg="1";
+        application.container.close();
+       }
+       else{  
+        showMessage(GetMsgsByFunctionAreaModel, message_type_inform, succ_message, "", "");
+        }       
+    }
+}
+
+function addItems(options) {
+    var item;
+    var i = 0;
+    for (i = 0; i < options.length; i++) {
+        item = options[i].value;
+        if (added.indexOf(item) == -1) //if added not contains item 
+        {
+            if (removed.indexOf(item) != -1) //if removed contains item 
+                removed.splice(removed.indexOf(item), 1); //remove item from removed 
+            else {
+                if (!isExecutiveUser(item)) {
+                    added.push(item); //add item to added
+                }
+            }
+        }
+    }
+    input1.setValue("Added = " + added + "   Removed = " + removed);
+}
+
+function removeItems(options) {
+    var item;
+    var i = 0;
+    for (i = 0; i < options.length; i++) {
+        item = options[i].value;
+        if (removed.indexOf(item) == -1) //if removed not contains item 
+        {
+            if (added.indexOf(item) != -1) // if added contains item
+                added.splice(added.indexOf(item), 1); //remove item from added 
+            else
+                removed.push(item); //add item to removed 
+        }
+    }
+    input1.setValue("Added = " + added + "   Removed = " + removed);
+}
+//This method is called on cancel button
+function btncancel_Click(eventObject) {
+    added = [];
+    removed = [];
+    if(agcygrp != ""){  
+       okflg="0"; 
+       application.container.close();               
+    }
+    else{
+    parent.parent.reloadHomePage();
+    }    
+}
+
+function isExecutiveUser(option) {
+    var options = lstExecutiveUsers.getAllOptions();
+    var res = false;
+    var i = 0;
+    for (i = 0; i < options.length; i++) {
+        if (options[i].value == option) {
+            res = true;
+            break;
+        }
+    }
+    return res;
+}
+//This Method is called for on Request GetOTDSGroupUsers
+function GetOTDSGroupUsersModel_OnRequest(eventObject) {
+    //cordys.setNodeText(eventObject.request, ".//*[local-name()='groupId']", groupid);
+}
+//Assign User To Group to selected Group
+function assignUserToGroup() {
+    var arrAssignUserDN = [];
+    for(i=0;i<added.length;i++){
+    arrAssignUserDN.push(added[i]);
+    }
+    assignUsersToGroup(AssignUserToGroupModel,groupid,arrAssignUserDN);
+}
+//Remove User To Group to selected Group
+function removeUserFromGroup() {
+    var arrRemoveUserDN = [];
+    for(i=0;i<removed.length;i++){
+    arrRemoveUserDN.push(removed[i]);
+    }
+    removeUsersFromGroup(RemoveUserFromGroupModel,groupid,arrRemoveUserDN);
+}
+// Email Notification function
+function sendNotifications() {
+    var i = 0;
+    var strUsers = "";
+    var req;
+    var mailContent = "";
+    var mailSubject = "";
+    var req1;
+    if (added.length > 0) {
+        req1 = CFM_EmailMsgTmplModel.getMethodRequest();
+        cordys.setNodeText(req1, ".//*[local-name()='EmailMsgTmplID']", mail_id);
+        CFM_EmailMsgTmplModel.setMethodRequest(req1);
+        CFM_EmailMsgTmplModel.reset();
+        mailSubject = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//*[local-name()='" + ((getParameterByName('language') == 'ar-QA') ? "SubjAr" : "SubjEn") + "']");
+        mailContent = cordys.getNodeText(CFM_EmailMsgTmplModel.getData(), ".//*[local-name()='" + ((getParameterByName('language') == 'ar-QA') ? "BodyAr" : "BodyEn") + "']");
+    }
+
+    for (i = 0; i < added.length; i++) {
+        req = MailNotificationsModel.getMethodRequest();
+        cordys.setNodeText(req, ".//*[local-name()='groupIDs']", "");
+        cordys.setNodeText(req, ".//*[local-name()='userIDs']", added[i].split(",")[0].split("=")[1]);
+        cordys.setNodeText(req, ".//*[local-name()='mailIDs']", "");
+        cordys.setNodeText(req, ".//*[local-name()='mailSubject']", mailSubject);
+        cordys.setNodeText(req, ".//*[local-name()='mailContent']", mailContent.replace("{0}", added[i].split(",")[0].split("=")[1]));
+        MailNotificationsModel.setMethodRequest(req);
+        //MailNotificationsModel.reset();
+                //making Send mail async
+                busdataislandID.request = MailNotificationsModel.getMethodRequest();
+		busdataislandID.reset();
+    }
+}
+//This method is called for Group Users before fill
+function lstExecutiveUsers_BeforeFill(eventObject) {
+    if (cordys.selectXMLNodes(eventObject.xml, ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1] != undefined) {
+        eventObject.returnValue = false;
+        eventObject.srcElement.addOption({
+            value: eventObject.inputOption.value,
+            description: eventObject.inputOption.description + " - " + cordys.getNodeText(cordys.selectXMLNodes(eventObject.xml, ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']")
+        }, false, 0, false);
+    }
+}
+//Method for Bringing all the users from the partition in config
+function fillAllPartitionUsers() {
+    lstUsers.removeAll();
+    var req;
+    var i = 0;
+    var j = 0;
+    var nodes = null;
+    for (i = 0; i < partitions.length; i++) {
+        req = GetAllOTDSUsersModel.getMethodRequest();
+        cordys.setNodeText(req, ".//*[local-name()='partitionName']", partitions[i]);
+        if (inp_username.getValue() == "") {
+            cordys.setNodeText(req, ".//*[local-name()='filter']", "a");
+            cordys.setNodeText(req, ".//*[local-name()='pageSize']", "50");
+            cordys.setNodeText(req, ".//*[local-name()='limit']", "25");
+        }
+        if (inp_username.getValue() != "") {
+            cordys.setNodeText(req, ".//*[local-name()='filter']", inp_username.getValue());
+            cordys.setNodeText(req, ".//*[local-name()='pageSize']", "250");
+            cordys.setNodeText(req, ".//*[local-name()='limit']", "250");
+        }
+        cordys.setNodeText(req, ".//*[local-name()='disabledUser']", "false");
+        GetAllOTDSUsersModel.setMethodRequest(req);
+        GetAllOTDSUsersModel.reset();
+        nodes = cordys.selectXMLNodes(GetAllOTDSUsersModel.getData(), ".//*[local-name()='reason']/.//*[local-name()='users']/.//*[local-name()='users']");
+        for (j = 0; j < nodes.length; j++) {
+            if (cordys.selectXMLNodes(cordys.selectXMLNode(nodes[j], "."), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1] != undefined)
+                lstUsers.addOption({
+                    description: cordys.getNodeText(nodes[j], ".//*[local-name()='name']") + " - " + cordys.getNodeText(cordys.selectXMLNodes(nodes[j], ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']"),
+                    value: cordys.getNodeText(nodes[j], ".//*[local-name()='url_location']")
+                });
+            else
+                lstUsers.addOption({
+                    description: cordys.getNodeText(nodes[j], ".//*[local-name()='name']"),
+                    value: cordys.getNodeText(nodes[j], ".//*[local-name()='url_location']")
+                });
+        }
+
+    }
+    
+    var searchval = lstUsers.getAllOptions();
+    if (searchval.length == "0") {
+        showMessage(GetMsgsByFunctionAreaModel, message_type_notify, data_unavailable, "", "");
+        return false;
+    }
+    lstUsers.removeDuplicates(lstExecutiveUsers.getAllOptions());
+}
+//Method to search for Users
+function btn_search_Click(eventObject) {
+    if (inp_username.getValue() == "" || inp_username.getValue().length < 3) {
+        showMessage(GetMsgsByFunctionAreaModel, message_type_notify, notify_min_chars, "", "");
+        inp_username.setFocus();
+        return false;
+    }
+    fillAllPartitionUsers();
+}
+//To clear all fields and reset data.
+function btn_clear_Click(eventObject) {
+    inp_username.setValue("");
+    fillAllPartitionUsers();
+}
+// Calling XML Object function 
+function setConfigs() {
+    var req = GetXMLObjectOperationModel.getMethodRequest();
+    cordys.setNodeText(req, ".//*[local-name()='key']", "qa/gov/ashghal/usermanagement/config.xml");
+    GetXMLObjectOperationModel.setMethodRequest(req);
+    GetXMLObjectOperationModel.reset();
+    partitions.push(cordys.getNodeText(GetXMLObjectOperationModel.getData(), ".//*[local-name()='internalPartition']"));  
+    group_partition = cordys.getNodeText(GetXMLObjectOperationModel.getData(), ".//*[local-name()='groupPartition']");
+}
+// Translate arabic and arabic css 
+function setMissingTranslations() {
+    if (getParameterByName('language') == 'ar-QA') {
+        $("#xbody_group").css("padding-left", "inherit").css("padding-right", "65px");
+        $(".people_right .v_label").css("text-align", "right");
+        $(".people_left .v_label").css("text-align", "right");
+        $(".people_right").addClass("people_right_ar");
+        $(".people_left").addClass("people_left_ar");
+        $(".boxnavigator").addClass("boxnavigator2");
+        text1.setValue(application.event.data.textvalue_caption_ar);
+        lstUsers.setLabel(application.event.data.first_listbox_caption_ar);
+        lstExecutiveUsers.setLabel(application.event.data.second_listbox_caption_ar);
+        grpUsers.setLabel(application.event.data.groupbox_caption_ar);
+        sel_agcy.addOption(aragcyoption, false, 0, false);
+        document.getElementById("imbMove").src = "qa/gov/ashghal/caprmsglobal/img/remove.png";
+        document.getElementById("imgMoveAll").src = "qa/gov/ashghal/caprmsglobal/img/remove-all.png";
+        document.getElementById("imgRemove").src = "qa/gov/ashghal/caprmsglobal/img/add.png";
+        document.getElementById("imgRemoveAll").src = "qa/gov/ashghal/caprmsglobal/img/add-all.png";
+        if(agcygrp != ""){
+        parent.document.getElementById("fb_title").style.textAlign = "right";
+        }
+        sel_agcy.setValue("");
+    }
+    else {
+        sel_agcy.addOption(agcyoption, false, 0, false);
+        sel_agcy.setValue("");
+    }
+}
+//Selected users passing to the parent form
+function btn_ok_Click(eventObject) {
+    userval = "";
+    usersel = "";
+    userdn = "";
+    var newTuple = lstExecutiveUsers.getAllOptions();
+    if (userflag == "1") {
+        if (newTuple.length > 1) {
+            showMessage(GetMsgsByFunctionAreaModel, 2, 254, "", "");
+            return false;
+        }
+        for (i = 0; i < newTuple.length; i++) {
+            usersel = newTuple[i].description;
+            userval = usersel.split(' -')[0];
+            userdn = newTuple[i].value;
+        }
+    }
+    if (userflag == "0") {
+        for (i = 0; i < newTuple.length; i++) {
+            usersel += newTuple[i].description + "\n";
+            userval += newTuple[i].description.split(' -')[0] + "\n";
+            userdn += newTuple[i].value + ";";
+        }
+        userval = userval.slice(0, -1);
+        userdn = userdn.slice(0, -1);
+        usersel = usersel.slice(0, -1);
+    }
+    accessrole();
+    if (callback) {
+        application.container.close();
+    }
+}
+//Closing the screen on click of Cancel Button.
+function btn_cancel_Click(eventObject) {
+    application.container.close();
+    
+}
+//This method gives data to the parent form
+function dialogReturnValue() {
+    if(agcygrp != ""){  
+    if(okflg=="1"){
+    var data = new Object();
+    data.msg= 1238;  
+    return data;  
+    }
+    else{
+    var data = new Object();
+    data.msg= "";  
+    return data;  
+    }
+    }
+    else{
+    if (callback) {
+        var data = new Object();
+        data.userval = userval;
+        data.userdn = userdn;
+        data.usersel = usersel;
+        return data;
+    } else {
+        var data = new Object();
+        data.userval = oruserval;
+        data.userdn = oruserdn;
+        data.usersel = orusersel;
+        return data;
+    }
+    }
+}
+//Access Role function for users which available in OTDS
+function accessrole() {
+    checkusrs = "";
+    alrtusrs = "";
+    usrsplit = "";
+    callback = false;
+    var newTuple = lstExecutiveUsers.getAllOptions();
+    for (i = 0; i < newTuple.length; i++) {
+        checkusrs += newTuple[i].description.split(' -')[0] + ",";
+    }
+    checkusrs = checkusrs.slice(0, -1);
+    if (checkusrs.length != 0) {
+        cordys.setNodeText(CheckAccessRoleUsersModel.getMethodRequest(), ".//*[local-name()='InUsers']", checkusrs);
+        CheckAccessRoleUsersModel.reset();
+        noaccessusers = cordys.getNodeText(CheckAccessRoleUsersModel.getData(), ".//*[local-name()='OutUsers']");
+        if (noaccessusers == undefined || noaccessusers.length == 0) {
+            application.notify("Users " + checkusrs + " don't have any AccessRole assigned to them . Contact Admin")
+            var tempcheck = checkusrs.split(",");
+
+            for (var j = 0; j < tempcheck.length; j++) {
+                document.getElementById("lstExecutiveUsers").children[0].children[j].style.color = 'red';
+            }
+            return false;
+        } else {
+            var usrsplit = checkusrs.split(",");
+
+            for (var i = 0; i < usrsplit.length; i++) {
+                if (!(noaccessusers.indexOf(usrsplit[i]) != -1)) {
+                    alrtusrs += usrsplit[i] + ";";
+
+                    for (var a = 0; a < usrsplit.length; a++) {
+                        if (document.getElementById("lstExecutiveUsers").children[0].children[a].value.split("cn=")[1].split(",")[0] == usrsplit[i]) {
+                            document.getElementById("lstExecutiveUsers").children[0].children[a].style.color = 'red';
+                        }
+                    }
+                }
+            }
+            alrtusrs = alrtusrs.slice(0, -1);
+            if (alrtusrs.length != 0) {
+                application.notify("Users " + alrtusrs + " don't have any AccessRole assigned to them . Contact Admin")
+                return false;
+            }
+        }
+    }
+    callback = true;
+}
+//This method is used to fill data in select box according to the language.
+function sel_agcy_BeforeFill(eventObject) {
+    eventObject.returnValue = false;
+    if (getParameterByName('language') == 'ar-QA')
+        eventObject.srcElement.addOption({
+            value: cordys.getNodeText(eventObject.xml, ".//*[local-name()='AgcyCdSys']"),
+            description: cordys.getNodeText(eventObject.xml, ".//*[local-name()='AgcyArNm']")
+        }, false, 0, false);
+    else
+        eventObject.srcElement.addOption({
+            value: cordys.getNodeText(eventObject.xml, ".//*[local-name()='AgcyCdSys']"),
+            description: cordys.getNodeText(eventObject.xml, ".//*[local-name()='AgcyEnNm']")
+        }, false, 0, false);
+}
+//This method is calling when agency on change
+function sel_agcy_Change(eventObject)
+{
+    if(sel_agcy.getValue() != ""){
+        agencyfilldata();
+    }
+}
+//This method is used to fill data in lists
+function agencyfilldata(){
+    lstUsers.removeAll();
+    lstExecutiveUsers.removeAll();
+    if(agcygrp != ""){  
+    var groups = [agcygrp + "-AgencyManager" + "@" + group_partition, agcygrp + "-AgencyExecutive" + "@" + group_partition, agcygrp + "-AgencyEngineer" + "@" + group_partition];
+    }
+    else{
+    agcytype = cordys.getNodeText(GetAgenciesByAgcyCodesModel.getData(), ".//*[local-name()='CFM_Agcy'][.//*[local-name()='AgcyCdSys'] = '" + sel_agcy.getValue() + "']/*[local-name()='AgcyTypID']");
+    if (agcytype == 1) {
+        agcysel = "X-M2-" + sel_agcy.getValue();
+         if (getParameterByName('language') == 'ar-QA')
+        lstUsers.setLabel("مستخدمي الوكالة الخارجية");
+        else
+        lstUsers.setLabel("External Agency Users");
+    } else {
+        agcysel = "I-M2-" + sel_agcy.getValue();
+        if (getParameterByName('language') == 'ar-QA')
+        lstUsers.setLabel("قائمة جميع مستخدمين أشغال");
+        else
+        lstUsers.setLabel("Ashghal Agency Users");
+    }
+    var groups = [agcysel + "-AgencyManager" + "@" + group_partition, agcysel + "-AgencyExecutive" + "@" + group_partition, agcysel + "-AgencyEngineer" + "@" + group_partition];
+    }
+    var req;
+    var i = 0;
+    var j = 0;
+    var nodes = null;
+    for (i = 0; i < groups.length; i++) {
+        req = GetOTDSGroupUsersResModel.getMethodRequest();
+        cordys.setNodeText(req, ".//*[local-name()='groupId']", groups[i]);
+        GetOTDSGroupUsersResModel.setMethodRequest(req);
+        GetOTDSGroupUsersResModel.reset();
+        nodes = cordys.selectXMLNodes(GetOTDSGroupUsersResModel.getData(), ".//*[local-name()='reason']/.//*[local-name()='users']/.//*[local-name()='users']");
+        for (j = 0; j < nodes.length; j++) {
+            if (cordys.selectXMLNodes(cordys.selectXMLNode(nodes[j], "."), ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1] != undefined)
+                lstUsers.addOption({
+                    description: cordys.getNodeText(nodes[j], ".//*[local-name()='name']") + " - " + cordys.getNodeText(cordys.selectXMLNodes(nodes[j], ".//*[local-name()='values'][.//*[local-name()='name']='mail']")[1], ".//*[local-name()='values']"),
+                    value: cordys.getNodeText(nodes[j], ".//*[local-name()='url_location']")
+                });
+            else
+                lstUsers.addOption({
+                    description: cordys.getNodeText(nodes[j], ".//*[local-name()='name']"),
+                    value: cordys.getNodeText(nodes[j], ".//*[local-name()='url_location']")
+                });
+        }
+
+    }
+    var searchval = lstUsers.getAllOptions();
+    lstUsers.removeDuplicates(lstUsers.getAllOptions());
+    if (searchval.length == "0") {
+        if (sel_agcy.getValue() != "") {
+            showMessage(GetMsgsByFunctionAreaModel, 1, 168, "", "");
+            return false;
+        }
+    }
+    if(agcygrp != ""){  
+    groupid = agcygrp + "-AgencyManager@" + group_partition;
+    }
+    else{
+    groupid = agcysel + "-AgencyActingManager@" + group_partition;
+    }
+    cordys.setNodeText(GetOTDSGroupUsersModel.getMethodRequest(), ".//*[local-name()='groupId']", groupid);
+    GetOTDSGroupUsersModel.reset();
+}
+//This method is used for logged in Agency Manager
+function GetAgencyCode()
+{
+    var strValue = "";
+    var userID = cordys.getNodeText(CordysRoot.getAssertions(),".//*[local-name()='NameIdentifier']");
+    var req = GetUserProfileInfoModel.getMethodRequest();
+    cordys.setNodeText(req,".//*[local-name()='strUserID']",userID);
+    cordys.setNodeText(req,".//*[local-name()='strAttributes']","oTMemberOf");
+    GetUserProfileInfoModel.setMethodRequest(req);
+    
+    GetUserProfileInfoModel.reset();
+    var values = cordys.selectXMLNodes(GetUserProfileInfoModel.getData(),".//*[local-name()='values']/*[local-name()='values']");
+    var i=0;
+    agcycode = "";
+    for(i=0;i<values.length;i++)
+    {
+	strValue = cordys.getNodeText(values[i],".").split(",")[0];
+	if(strValue.indexOf("-M2-") > -1)
+	{
+	    if((strValue.split("-")[2].length == 5) && (strValue.split("-")[3] == "AgencyManager") )
+	    {
+                if(strValue.split("-")[2].length == 5)
+                {
+                    agcycode += "'" + strValue.split("-")[2] + "',";
+                }
+            }
+        }		
+    } 
+    agcycode = agcycode .slice(0, -1); 
+}
